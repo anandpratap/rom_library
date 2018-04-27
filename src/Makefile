@@ -5,6 +5,8 @@ CXX=g++
 
 all:
 	${CXX} main.cpp -o main -I${ARMA_PATH}/include -L${ARMA_PATH}/lib -std=c++14 -larmadillo -g
+gems:
+	${CXX} main_gems.cpp -o main_gems -I${ARMA_PATH}/include -L${ARMA_PATH}/lib -std=c++14 -larmadillo -g
 swig:
 	swig -python -c++ main.i
 	${CXX} -c main_wrap.cxx  -I${ARMA_PATH}/include -std=c++14  -I${PYTHON_INC} -fPIC
