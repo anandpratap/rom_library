@@ -24,7 +24,7 @@ program test
   double precision :: uhat(2000), uhat_sum(2000)
   integer :: np
   dim = 2000
-
+  np = 10
   ! Create an object of type foo
   gr = gemsrom()
   uhat_sum(:) = 0.0
