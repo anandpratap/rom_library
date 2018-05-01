@@ -4,7 +4,9 @@ CXX=g++
 
 
 all:
-	${CXX} main.cpp -o main -I${ARMA_PATH}/include -L${ARMA_PATH}/lib -std=c++14 -larmadillo -g
+	${CXX} main.cpp -o main.o -I${ARMA_PATH}/include -std=c++14 -g -c -fPIC -DARMA_DONT_USE_HDF5
+	${CXX} -shared -o libmain.so main.o -lblas -llapack -larmadillo -L${ARMA_PATH}/lib
+
 gems:
 	${CXX} main_gems.cpp -o main_gems -I${ARMA_PATH}/include -L${ARMA_PATH}/lib -std=c++14 -larmadillo -g
 swig:
