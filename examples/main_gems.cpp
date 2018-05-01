@@ -46,7 +46,7 @@ int main(){
 		vidx = m.get_index(i, idx);
 		//vidx.print();
 		arma::vec up = u(vidx);
-		
+		up.save("up_"+std::to_string(i), arma::arma_ascii);
 		uhatp += m.get_uhat(i, up, dim);
 
 		m.get_uhat(i, up.memptr(), up.size(), uhatp_ptr, dim); 
