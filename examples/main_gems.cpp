@@ -32,26 +32,49 @@ int main(){
 	vidx.print();
 
 	arma::vec uhatp(dim, arma::fill::zeros);
+
+	double *uhatp_ptr = new double[dim];
+	double *uhatp_ptr_sum = new double[dim];
+
+	for(int i=0; i<dim; i++){
+		uhatp_ptr[i] = 0.0;
+		uhatp_ptr_sum[i] = 0.0;
+	}
+	
 	for(int i=0; i<m.num_processor; i++){
 		idx = arma::find(m.partition_id == i);
 		vidx = m.get_index(i, idx);
 		//vidx.print();
 		arma::vec up = u(vidx);
+		
 		uhatp += m.get_uhat(i, up, dim);
+
+		m.get_uhat(i, up.memptr(), up.size(), uhatp_ptr, dim); 
+
+		for(int i=0; i<dim; i++){
+			uhatp_ptr_sum[i] += uhatp_ptr[i];
+		}
 	}
 	
-
+	
 	arma::vec utp = m.get_u(0, uhatp, dim);
+
+	double *utp_ptr = new double[utp.size()];
+
+	m.get_u(0, utp_ptr, utp.size(), uhatp_ptr_sum, dim);
 	//assert(up.size() == utp.size());
 	gid = m.get_global_id(0, 0);
 	println(u(gid*8));
 	println(uhatp(1));
 	println(utp(0));
-							 
+	println(uhatp_ptr_sum[1]);
+	println(utp_ptr[0]);
+
 	
-	double *uptr = u.memptr();
-	double *uhatptr = uhat.memptr();
-	double *utptr = ut.memptr();
+	
+
+	
+
 	//m.get_u
 	
 	// m.m->calc_deim(dim);
