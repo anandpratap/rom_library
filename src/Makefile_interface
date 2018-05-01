@@ -9,8 +9,7 @@ ARMA_PATH = /home/anandps/local/armadillo
 
 LDFLAGS = -lstdc++
 
-all: test.x
-test.o : main_mod.o
+all: main.o
 
 %.x : %.o main_mod.o main_capi.o main.o
 	${FC} $^ -o $@ ${LDFLAGS} -L${ARMA_PATH}/lib -larmadillo -lblas -llapack
