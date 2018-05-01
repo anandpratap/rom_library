@@ -447,6 +447,8 @@ void GemsRom::initialize(){
 	arma::mat snapshots = load_snapshots();
 	m = new Main();
 	m->set_snapshots(snapshots);
+	load_partition_info();
+	m->load_modes();
 }
 
 void GemsRom::load_partition_info(){
