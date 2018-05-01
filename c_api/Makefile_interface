@@ -1,0 +1,27 @@
+FC = gfortran
+CXX = g++
+
+UNAME := $(shell uname -s)
+
+FCFLAGS = -Wall -Wextra -g
+CCFLAGS = -Wall -Wextra -g
+ARMA_PATH = /home/anandps/local/armadillo
+
+LDFLAGS = -lstdc++
+
+all: main.o
+test.o : main_mod.o
+
+%.x : %.o main_mod.o main_capi.o main.o
+	${FC} $^ -o $@ ${LDFLAGS} -L${ARMA_PATH}/lib -larmadillo -lblas -llapack
+
+%.o : %.f90
+	${FC} ${FCFLAGS} -c $< -o $@
+
+%.o : %.c
+	${CXX} ${CCFLAGS} -c $^ -o $@ -I${ARMA_PATH}/include -std=c++14
+
+.PHONY : clean
+
+clean :
+	${RM} -rf *.o *.mod test.x
