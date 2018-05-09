@@ -29,7 +29,8 @@ public:
 	arma::mat modes_spatial;
 	arma::mat modes_temporal;
 	arma::vec singular_values;
-
+	int isnormalize = 0;
+	
 	arma::Col<arma::uword> deim_p;
 
 	void set_snapshots(arma::mat isnapshots);
@@ -80,6 +81,9 @@ public:
 	arma::vec get_u(int ipartition_id, arma::vec qhat, int n_mode);
 	void get_uhat(int ipartition_id, double* q, int nq, double *qhat, int n_mode);
 	void get_u(int ipartition_id, double* q, int nq, double *qhat, int n_mode);
+
+	void get_uhat(int ipartition_id, int lq, double *q, int lqhat, double *qhat);
+	void get_u(int ipartition_id, int lq, double *q, int lqhat, double *qhat);
 
 
 };

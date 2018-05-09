@@ -11,10 +11,11 @@ void Main::set_snapshots(arma::mat isnapshots){
 	snap_std = arma::stddev(snapshots, 0, 1);
 	print_mat_shape(snap_mean, "Snapshots mean: ");
 	print_mat_shape(snap_std, "Snapshots std: ");
-	
-	for(arma::uword j=0; j<snapshots.n_cols; j++){
-		for(arma::uword i=0; i<snapshots.n_rows; i++){
-			snapshots(i, j) = (snapshots(i,j) - snap_mean(i))/(1.0 + snap_std(i));
+	if(isnormalize){
+		for(arma::uword j=0; j<snapshots.n_cols; j++){
+			for(arma::uword i=0; i<snapshots.n_rows; i++){
+				snapshots(i, j) = (snapshots(i,j) - snap_mean(i))/(1.0 + snap_std(i));
+			}
 		}
 	}
 
@@ -137,8 +138,15 @@ void Main::calc_adeim(int dim, int m, int tidx){
 	int n_modes = dim;
 	arma::Col<arma::uword> psub = deim_p.subvec(0, n_modes-1);
 	arma::mat usub = modes_spatial(arma::span::all, arma::span(0, n_modes-1));
-		
-	auto ms = arma::randi<arma::Col<arma::uword>>(m, arma::distr_param(0,usub.n_rows-1));
+
+	arma::Col<arma::uword> ms(m);
+	if(0){
+		ms = arma::randi<arma::Col<arma::uword>>(m, arma::distr_param(0,usub.n_rows-1));
+	}
+	else{
+		ms.load("../../matlab/adeim/rand_"+std::to_string(t+1) + ".mat", arma::raw_ascii);
+		ms = ms - 1;
+	}
 	arma::Col<arma::uword> psub_new(psub.size() + m);
 	psub_new.subvec(0, psub.size()-1) = psub;
 	psub_new.subvec(psub.size(), psub.size()+m-1) = ms;
@@ -331,16 +339,30 @@ void Main::calc_adeim(int dim, int m, int tidx){
 
 arma::vec Main::renormalize(arma::vec x){
 	arma::vec y(x);
-	for(arma::uword k=0; k<x.size(); k++){
-		y(k) = x(k)*(1.0 + snap_std(k)) + snap_mean(k);
+	if(isnormalize){
+		for(arma::uword k=0; k<x.size(); k++){
+			y(k) = x(k)*(1.0 + snap_std(k)) + snap_mean(k);
+		}
+	}
+	else{
+		for(arma::uword k=0; k<x.size(); k++){
+			y(k) = x(k);
+		}
 	}
 	return y;
 }
 
 arma::vec Main::renormalize(arma::vec x, arma::uvec var_idx){
 	arma::vec y(x);
-	for(arma::uword k=0; k<x.size(); k++){
-		y(k) = x(k)*(1.0 + snap_std(var_idx(k))) + snap_mean(var_idx(k));
+	if(isnormalize){
+		for(arma::uword k=0; k<x.size(); k++){
+			y(k) = x(k)*(1.0 + snap_std(var_idx(k))) + snap_mean(var_idx(k));
+		}
+	}
+	else{
+		for(arma::uword k=0; k<x.size(); k++){
+			y(k) = x(k);
+		}
 	}
 	return y;
 }
@@ -547,3 +569,11 @@ void GemsRom::get_u(int ipartition_id, double* q, int nq, double *qhat, int n_mo
 	}
 }
 
+
+void GemsRom::get_uhat(int ipartition_id, int lq, double* q, int lqhat, double *qhat){
+	get_uhat(ipartition_id, q, lq, qhat, lqhat);
+}
+
+void GemsRom::get_u(int ipartition_id, int lq, double* q, int lqhat, double *qhat){
+	get_uhat(ipartition_id, q, lq, qhat, lqhat);
+}
