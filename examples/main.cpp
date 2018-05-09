@@ -12,7 +12,7 @@ int main(){
 	int Nt = 10000; // number of time steps
 	int Tstart = 1; // start time
 	int Tend = 3; // end time
-	int dim = 5; // dimension of (a)DEIM space
+	int dim = 2; // dimension of (a)DEIM space
 	int w = 1; // window size
 	int ms = 5; // number of additional(!) sampling points
 
@@ -28,14 +28,14 @@ int main(){
 	m.calc_svd();
 	m.calc_deim(dim);
 	for(int i=0; i<Nt; i++){
-		if(i%100 == 0){
+		if(i%1 == 0){
 			m.use_deim(dim, i);
 		}
 	}
 
 	for(int i=0; i<Nt; i++){
 		m.calc_adeim(dim, ms, i);
-		if(i%100 == 0){
+		if(i%1 == 0){
 			m.use_adeim(dim, i);
 		}
 	}

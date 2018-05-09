@@ -3,7 +3,8 @@ CXX=g++
 
 
 all:
-	${CXX} -c main.cpp -o main -I${ARMA_PATH}/include -L${ARMA_PATH}/lib -std=c++14 -larmadillo -g -I../src -L../src 
+	${CXX} -c main.cpp -I${ARMA_PATH}/include -L${ARMA_PATH}/lib -std=c++14 -larmadillo -g -I../src -L../src
+	${CXX} main.o ../src/main.o -o main -I${ARMA_PATH}/include -L${ARMA_PATH}/lib -std=c++14 -larmadillo -g -I../src -L../src 
 gems:
 	${CXX} main_gems.cpp -o main_gems -I${ARMA_PATH}/include -L${ARMA_PATH}/lib -std=c++14 -larmadillo -g -I../src -L../src -lmain 
 
