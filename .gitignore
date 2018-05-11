@@ -1,0 +1,9 @@
+*.o
+*.so
+*.mod
+*~
+*.bin
+*.dat
+*.out
+*.dblite
+*.os
