@@ -1,0 +1,4 @@
+[submodule "external/armadillo"]
+	path = external/armadillo
+	url = git@github.com:conradsnicta/armadillo-code.git
+	branch = 8.500.x
