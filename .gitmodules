@@ -2,7 +2,9 @@
 	path = external/armadillo
 	url = git@github.com:conradsnicta/armadillo-code.git
 	branch = 8.500.x
+	ignore = dirty
 [submodule "external/scons"]
 	path = external/scons
 	url = git@github.com:SCons/scons.git
 	branch = rel_3.0.1
+	ignore = dirty
