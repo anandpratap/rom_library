@@ -9,7 +9,7 @@ env.Append(CPPPATH=[os.path.join(arma_dir, "include")])
 env.Append(LIBPATH=[os.path.join(arma_dir, "lib")])
 
 env.Append(CXXFLAGS=["-DARMA_DONT_USE_HDF5"])
-env.Append(CXXFLAGS=["-std=c++14", "-Wall", "-Wextra"])
+env.Append(CXXFLAGS=["-std=c++11", "-Wall", "-Wextra"])
 
 env['CC'] = env["CXX"]
 env['LINK'] = env["CXX"]
