@@ -6,8 +6,12 @@ libraries = ["src", "c_api", "fortran_api"]
 
 arma_dir = os.environ["ARMA_DIR"]
 env.Append(CPPPATH=[os.path.join(arma_dir, "include")])
-env.Append(LIBPATH=[os.path.join(arma_dir, "lib")])
 
+if os.path.isdir(os.path.join(arma_dir, "lib")):
+    env.Append(LIBPATH=[os.path.join(arma_dir, "lib")])
+elif os.path.isdir(os.path.join(arma_dir, "lib64")):
+    env.Append(LIBPATH=[os.path.join(arma_dir, "lib64")])
+   
 env.Append(CXXFLAGS=["-DARMA_DONT_USE_HDF5"])
 env.Append(CXXFLAGS=["-std=c++11", "-Wall", "-Wextra"])
 
