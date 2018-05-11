@@ -1,0 +1,4 @@
+Import("env")
+SOURCES = ["main.cpp"]
+LIBS = ["armadillo"]
+env.SharedLibrary("#/lib/main_cxx", SOURCES, LIBS=LIBS)

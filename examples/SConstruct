@@ -1,0 +1,10 @@
+Import("env")
+LIBS = ["armadillo", "main_cxx"]
+SOURCES = ["main.cpp"]
+env.Program("main", SOURCES, LIBS=LIBS)
+
+LIBS.append("main_c")
+LIBS.append("main_fortran")
+LIBS.append("gfortran")
+SOURCES = ["test.f90"]
+env.Program("test", SOURCES, LIBS=LIBS)

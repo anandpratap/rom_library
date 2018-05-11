@@ -1,4 +1,4 @@
-#include "main.hpp"
+#include "../src/main.hpp"
 arma::vec test_function(arma::vec x, double t){
 	double pi = arma::datum::pi;
 	arma::vec y(x.size());
