@@ -5,18 +5,46 @@
 
 
 
-void Main::set_snapshots(arma::mat isnapshots){
+void MainRom::set_snapshots(arma::mat isnapshots){
 	snapshots = isnapshots;
-	snap_mean = arma::mean(snapshots, 1);
-	snap_std = arma::stddev(snapshots, 0, 1);
-	print_mat_shape(snap_mean, "Snapshots mean: ");
-	print_mat_shape(snap_std, "Snapshots std: ");
-	if(isnormalize){
+	if(isnormalize==1){
+		snap_mean = arma::mean(snapshots, 1);
+		snap_std = arma::stddev(snapshots, 0, 1);
+		print_mat_shape(snap_mean, "Snapshots mean: ");
+		print_mat_shape(snap_std, "Snapshots std: ");
 		for(arma::uword j=0; j<snapshots.n_cols; j++){
 			for(arma::uword i=0; i<snapshots.n_rows; i++){
 				snapshots(i, j) = (snapshots(i,j) - snap_mean(i))/(1.0 + snap_std(i));
 			}
 		}
+	}
+	else if(isnormalize == 2){
+		snap_mean_v = arma::vec(8);
+		snap_std_v = arma::vec(8);
+		int ncv = snapshots.n_rows/8;
+		int nt = snapshots.n_cols;
+		arma::vec Var(ncv*nt);
+		for(int i=0; i<8; i++){
+			int k=0;
+			for(int icv=0; icv<ncv; icv++){
+				for(int t=0; t<nt; t++){
+					Var(k) = snapshots(icv*8 + i, t);
+					k+=1;
+				}
+			}
+			assert(k == ncv*nt);
+			snap_mean_v(i) = arma::mean(Var);
+			snap_std_v(i) = arma::stddev(Var, 0);
+		}
+		snap_mean_v(2) = snap_mean_v(1);
+		snap_std_v(2) = snap_std_v(1);
+
+		for(arma::uword j=0; j<snapshots.n_cols; j++){
+			for(arma::uword i=0; i<snapshots.n_rows; i++){
+				snapshots(i, j) = (snapshots(i,j) - snap_mean_v(i%8))/snap_std_v(i%8);
+			}
+		}
+
 	}
 
 	//snapshots = snapshots.cols(0, 100);
@@ -24,13 +52,13 @@ void Main::set_snapshots(arma::mat isnapshots){
 	println(this->snapshots(0,0));
 }
 
-arma::vec Main::projection_on_basis(arma::vec u, int n_mode){
+arma::vec MainRom::projection_on_basis(arma::vec u, int n_mode){
 	assert(u.size() == modes_spatial.n_rows);
 	arma::mat usub = modes_spatial(arma::span::all, arma::span(0, n_mode-1));
 	return usub.t()*normalize(u);
 }
 
-arma::vec Main::projection_on_basis(arma::vec u, int n_mode, arma::uvec var_idx){
+arma::vec MainRom::projection_on_basis(arma::vec u, int n_mode, arma::uvec var_idx){
 	assert(u.size() == var_idx.size());
 	arma::mat usub = modes_spatial(arma::span::all, arma::span(0, n_mode-1));
 	arma::mat uusub = usub.rows(var_idx);
@@ -39,7 +67,7 @@ arma::vec Main::projection_on_basis(arma::vec u, int n_mode, arma::uvec var_idx)
 }
 
 
-arma::vec Main::projection_from_basis(arma::vec uhat, int n_mode){
+arma::vec MainRom::projection_from_basis(arma::vec uhat, int n_mode){
 	assert(uhat.size() == n_mode);
 	arma::mat usub = modes_spatial(arma::span::all, arma::span(0, n_mode-1));
 	arma::vec u= usub*uhat;
@@ -47,7 +75,7 @@ arma::vec Main::projection_from_basis(arma::vec uhat, int n_mode){
 }
 
 
-arma::vec Main::projection_from_basis(arma::vec uhat, int n_mode, arma::uvec var_idx){
+arma::vec MainRom::projection_from_basis(arma::vec uhat, int n_mode, arma::uvec var_idx){
 	assert(uhat.size() == n_mode);
 	arma::mat usub = modes_spatial(arma::span::all, arma::span(0, n_mode-1));
 	arma::mat uusub = usub.rows(var_idx);
@@ -57,19 +85,21 @@ arma::vec Main::projection_from_basis(arma::vec uhat, int n_mode, arma::uvec var
 }
 
 
-void Main::save_modes(){
-	modes_spatial.save("modes_spatial.bin", arma::arma_binary);
-	modes_temporal.save("modes_temporal.bin", arma::arma_binary);
-	singular_values.save("singular_values.bin", arma::arma_binary);
+void MainRom::save_modes(std::string suffix){
+	modes_spatial.save("modes_spatial.bin"+suffix, arma::arma_binary);
+	modes_temporal.save("modes_temporal.bin"+suffix, arma::arma_binary);
+	singular_values.save("singular_values.bin"+suffix, arma::arma_binary);
+	singular_values.save("singular_values.ascii"+suffix, arma::arma_ascii);
+	
 }
 
-void Main::load_modes(){
-	modes_spatial.load("modes_spatial.bin", arma::arma_binary);
-	modes_temporal.load("modes_temporal.bin", arma::arma_binary);
-	singular_values.load("singular_values.bin", arma::arma_binary);
+void MainRom::load_modes(std::string suffix){
+	modes_spatial.load("modes_spatial.bin"+suffix, arma::arma_binary);
+	modes_temporal.load("modes_temporal.bin"+suffix, arma::arma_binary);
+	singular_values.load("singular_values.bin"+suffix, arma::arma_binary);
 }
 	
-void Main::calc_svd(){
+void MainRom::calc_svd(){
 	svd_econ(modes_spatial, singular_values, modes_temporal, this->snapshots);
 	print_mat_shape(modes_spatial, "modes_spatial: ");
 	print_mat_shape(modes_temporal, "modes_temporal: ");
@@ -77,7 +107,7 @@ void Main::calc_svd(){
 	//singular_values.print();
 }
 
-void Main::reconstruct(int n_mode){
+void MainRom::reconstruct(int n_mode){
 	arma::mat sigma = arma::diagmat(singular_values.subvec(0, n_mode-1));
 	arma::mat snapshots_recon = modes_spatial.cols(0, n_mode-1)*sigma*modes_temporal.cols(0, n_mode-1).t();
 	arma::mat error = snapshots_recon - snapshots;
@@ -85,7 +115,7 @@ void Main::reconstruct(int n_mode){
 	print("Error in reconstruction: "); println(arma::norm(error, 2)/error.size());
 }
 
-void Main::calc_deim(int dim){
+void MainRom::calc_deim(int dim){
 	arma::Col<arma::uword> p(dim);
 	arma::vec u = arma::abs(modes_spatial.col(0));
 	//u.print();
@@ -113,7 +143,8 @@ void Main::calc_deim(int dim){
 	deim_p = p;
 	//P.save("P.bin", arma::arma_binary);
 	//p.save("p_idx.bin", arma::arma_binary);
-
+	deim_p.save("deim_p.bin", arma::arma_binary);
+	deim_p.save("deim_p.ascii", arma::arma_ascii);
 	//deim_p = p;
 	//deim_P = P;
 	//arma::vec snap_t = snapshots.col(1500);
@@ -126,7 +157,7 @@ void Main::calc_deim(int dim){
 }
 
 
-void Main::calc_adeim(int dim, int m, int tidx){
+void MainRom::calc_adeim(int dim, int m, int tidx){
 
 
 
@@ -337,13 +368,18 @@ void Main::calc_adeim(int dim, int m, int tidx){
 }
 
 
-arma::vec Main::renormalize(arma::vec x){
+arma::vec MainRom::renormalize(arma::vec x){
 	arma::vec y(x);
-	if(isnormalize){
+	if(isnormalize==1){
 		for(arma::uword k=0; k<x.size(); k++){
 			y(k) = x(k)*(1.0 + snap_std(k)) + snap_mean(k);
 		}
 	}
+	else if(isnormalize==2){
+		for(arma::uword k=0; k<x.size(); k++){
+			y(k) = x(k)*snap_std_v(k%8) + snap_mean_v(k%8);
+		}
+	}
 	else{
 		for(arma::uword k=0; k<x.size(); k++){
 			y(k) = x(k);
@@ -352,13 +388,18 @@ arma::vec Main::renormalize(arma::vec x){
 	return y;
 }
 
-arma::vec Main::renormalize(arma::vec x, arma::uvec var_idx){
+arma::vec MainRom::renormalize(arma::vec x, arma::uvec var_idx){
 	arma::vec y(x);
-	if(isnormalize){
+	if(isnormalize==1){
 		for(arma::uword k=0; k<x.size(); k++){
 			y(k) = x(k)*(1.0 + snap_std(var_idx(k))) + snap_mean(var_idx(k));
 		}
 	}
+	else if(isnormalize==2){
+		for(arma::uword k=0; k<x.size(); k++){
+			y(k) = x(k)*snap_std_v(var_idx(k)%8) + snap_mean_v(var_idx(k)%8);
+		}
+	}
 	else{
 		for(arma::uword k=0; k<x.size(); k++){
 			y(k) = x(k);
@@ -368,27 +409,49 @@ arma::vec Main::renormalize(arma::vec x, arma::uvec var_idx){
 }
 
 
-arma::vec Main::normalize(arma::vec x){
+arma::vec MainRom::normalize(arma::vec x){
 	arma::vec y(x);
-
-	for(arma::uword k=0; k<x.size(); k++){
-		y(k) = (x(k) - snap_mean(k))/(1.0 + snap_std(k));
+	if(isnormalize==1){
+		for(arma::uword k=0; k<x.size(); k++){
+			y(k) = (x(k) - snap_mean(k))/(1.0 + snap_std(k));
+		}
+	}
+	else if(isnormalize==2){
+		for(arma::uword k=0; k<x.size(); k++){
+			y(k) = (x(k) - snap_mean_v(k%8))/snap_std_v(k%8);
+		}
+	}
+	else{
+		for(arma::uword k=0; k<x.size(); k++){
+			y(k) = x(k);
+		}
 	}
 	return y;
 }
 
 
-arma::vec Main::normalize(arma::vec x, arma::uvec var_idx){
+arma::vec MainRom::normalize(arma::vec x, arma::uvec var_idx){
 	arma::vec y(x);
-
-	for(arma::uword k=0; k<x.size(); k++){
-		y(k) = (x(k) - snap_mean(var_idx(k)))/(1.0 + snap_std(var_idx(k)));
+	if(isnormalize==1){
+		for(arma::uword k=0; k<x.size(); k++){
+			y(k) = (x(k) - snap_mean(var_idx(k)))/(1.0 + snap_std(var_idx(k)));
+		}
+	}
+	else if(isnormalize==2){
+		for(arma::uword k=0; k<x.size(); k++){
+			y(k) = (x(k) - snap_mean_v(var_idx(k)%8))/snap_std_v(var_idx(k)%8);
+		}
+	}
+	else{
+		for(arma::uword k=0; k<x.size(); k++){
+			y(k) = x(k);
+		}
 	}
 	return y;
 }
 
 
-void Main::use_adeim(int dim, int t){
+void MainRom::use_adeim(int dim, int t){
 		
 	int n_modes = dim;
 	arma::Col<arma::uword> psub = deim_p.subvec(0, n_modes-1);
@@ -405,7 +468,7 @@ void Main::use_adeim(int dim, int t){
 	psub.save("iblank_adeim_"+std::to_string(t)+".dat", arma::arma_ascii);
 }
 	
-void Main::use_deim(int dim, int t){
+void MainRom::use_deim(int dim, int t){
 	
 	int n_modes = dim;
 	arma::Col<arma::uword> psub = deim_p.subvec(0, n_modes-1);
@@ -429,6 +492,7 @@ void Main::use_deim(int dim, int t){
 
 	arma::vec snap_t_deim = PP * b;
 	snap_t = renormalize(snap_t);
+
 	snap_t_pod = renormalize(snap_t_pod);
 	snap_t_deim = renormalize(snap_t_deim);
 	snap_t.save("snap_t_"+std::to_string(t)+".dat", arma::arma_ascii);
@@ -449,11 +513,13 @@ void Main::use_deim(int dim, int t){
 	println("-----------");
 		
 }
-arma::mat GemsRom::load_snapshots(){
+arma::mat GemsRom::load_snapshots(std::string suffix){
 	arma::mat snapshots_tmp, snapshots;
 	arma::Mat<int> shape;
+	std::string filename = "snapshots_solution.bin"+suffix;
+	println("Reading file: " + filename);
 	shape.load("snapshots_shape.bin", arma::raw_binary);
-	snapshots_tmp.load("snapshots_solution.bin", arma::raw_binary);
+	snapshots_tmp.load(filename, arma::raw_binary); 
 	snapshots.set_size(shape[1]*shape[2], shape[0]);
 
 	for(int i=0; i<shape[0]; i++){
@@ -466,8 +532,13 @@ arma::mat GemsRom::load_snapshots(){
 	return snapshots;
 }
 void GemsRom::initialize(){
+	try{
+		m = new MainRom();
+	}
+	catch(std::bad_alloc &e){
+		std::cout<<e.what()<<std::endl;
+	}
 	arma::mat snapshots = load_snapshots();
-	m = new Main();
 	m->set_snapshots(snapshots);
 	load_partition_info();
 	m->load_modes();

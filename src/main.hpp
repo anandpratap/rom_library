@@ -21,23 +21,24 @@ void print_mat_shape(arma::Mat<T> mat, std::string header=""){
 
 
 
-class Main{
+class MainRom{
 private:
 public:
 	arma::mat snap_mean, snap_std, snap_norm;
+	arma::vec snap_mean_v, snap_std_v;
 	arma::mat snapshots;
 	arma::mat modes_spatial;
 	arma::mat modes_temporal;
 	arma::vec singular_values;
-	int isnormalize = 0;
+	int isnormalize = 2;
 	
 	arma::Col<arma::uword> deim_p;
 
 	void set_snapshots(arma::mat isnapshots);
 	
-	void save_modes();
+	void save_modes(std::string suffix="");
 
-	void load_modes();
+	void load_modes(std::string suffix="");
 
 	void calc_svd();
 
@@ -66,10 +67,10 @@ public:
 class GemsRom{
 private:
 public:
-	Main *m;
+	MainRom *m;
 	int num_processor;
 	arma::Col<int> local_id, partition_id;
-	arma::mat load_snapshots();
+	arma::mat load_snapshots(std::string suffix="");
 	void initialize();
 	void load_partition_info();
 	int get_global_id(int ipartition_id, int ilocal_id);
