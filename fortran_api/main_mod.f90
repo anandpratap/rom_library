@@ -13,7 +13,7 @@ module libgemsrom
         type(c_ptr) :: ptr ! pointer to the Gemsrom class
     contains
         ! We can bind some functions to this type, allowing for a cleaner syntax.
-#ifdef __GNUC__
+#if defined(__GNUC__) || defined(__INTEL_COMPILER)
         procedure :: delete => delete_gemsrom_polymorph ! Destructor for gfortran
 #else
         final :: delete_gemsrom ! Destructor
