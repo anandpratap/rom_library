@@ -23,7 +23,7 @@ int main(){
 		snapshots.col(i) = test_function(x, t(i));
 	}
 	
-	auto m = Main();
+	auto m = MainRom();
 	m.set_snapshots(snapshots);
 	m.calc_svd();
 	m.calc_deim(dim);

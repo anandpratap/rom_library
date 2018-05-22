@@ -1,4 +1,4 @@
 Import("env")
 SOURCES = ["main.c"]
 LIBS = ["main_cxx"]
-env.SharedLibrary("#/lib/main_c", SOURCES, LIBS=LIBS)
+env.StaticLibrary("#/lib/main_c", SOURCES, LIBS=LIBS)

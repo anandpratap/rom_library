@@ -1,4 +1,4 @@
-#include "main.hpp"
+#include "../src/main.hpp"
 
 int main(){
 	auto m = GemsRom();

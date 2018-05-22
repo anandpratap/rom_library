@@ -1,10 +1,35 @@
 Import("env")
-LIBS = ["armadillo", "main_cxx"]
+env['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME']=1
+cenv = env.Clone()
+LIBS = ["main_cxx", "armadillo"]
+cenv["LINK"] = env["CXX"]
 SOURCES = ["main.cpp"]
-env.Program("main", SOURCES, LIBS=LIBS)
+cenv.Program("main", SOURCES, LIBS=LIBS)
 
-LIBS.append("main_c")
-LIBS.append("main_fortran")
-LIBS.append("gfortran")
-SOURCES = ["test.f90"]
-env.Program("test", SOURCES, LIBS=LIBS)
+SOURCES = ["main_gems.cpp"]
+cenv.Program("main_gems", SOURCES, LIBS=LIBS)
+
+SOURCES = ["test.cpp"]
+cenv.Program("testcxx", SOURCES, LIBS=LIBS)
+
+SOURCES = ["generate_modes.cpp"]
+cenv.Program("generate_modes", SOURCES, LIBS=LIBS)
+
+
+LIBS = ["armadillo", "lapack", "blas"]
+LIBS.append("rom")
+env["LINK"] = env["F90"]
+
+#LIBS.append("main_fortran")
+if GetOption("intel_mpi") or GetOption("intel"):
+    LIBS.append("intlc")
+    LIBS.append("ifcore")
+    LIBS.append("ifport")
+    LIBS.append("stdc++")
+
+else:
+    LIBS.append("gfortran")
+    
+#SOURCES = ["test.f90"]
+#env['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME']=1
+#env.Program("test", SOURCES, LIBS=LIBS)

@@ -519,7 +519,10 @@ arma::mat GemsRom::load_snapshots(std::string suffix){
 	std::string filename = "snapshots_solution.bin"+suffix;
 	println("Reading file: " + filename);
 	shape.load("snapshots_shape.bin", arma::raw_binary);
-	snapshots_tmp.load(filename, arma::raw_binary); 
+	snapshots_tmp.load(filename, arma::raw_binary);
+	int nt = shape[0];
+	int ncv = shape[1];
+	int nvar = shape[2];
 	snapshots.set_size(shape[1]*shape[2], shape[0]);
 
 	for(int i=0; i<shape[0]; i++){
