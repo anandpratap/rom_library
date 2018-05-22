@@ -522,6 +522,37 @@ arma::vec GemsRom::calc_deim(int ipartition_id, arma::vec r_s){
 	assert(n_cols == r_s.size());
 	return PP*r_s;
 }
+
+
+
+int GemsRom::get_deim_local_size(int ipartition_id){
+	arma::mat PP;
+	PP.load("PP_p_"+std::to_string(ipartition_id), arma::arma_ascii);
+	int n_cols = PP.n_cols;
+	return n_cols;
+}
+
+void GemsRom::get_deim_local_id_idx(int ipartition_id, int *ilocal_id, int *ivar){
+	arma::umat tmp_s;
+	tmp_s.load("deim_p_"+std::to_string(ipartition_id));
+	int n_rows = tmp_s.n_rows;
+	assert(ilocal_id != nullptr);
+	assert(ivar != nullptr);
+	for(int i=0; i< n_rows; i++){
+		ilocal_id[i] = tmp_s(i, 4);
+		ivar[i] = tmp_s(i, 2);
+	}
+}
+
+void GemsRom::calc_deim(int ipartition_id, double *r_s, double *deim_r){
+	assert(r_s != nullptr);
+	arma::vec r_s_v = arma::vec(r_s, get_deim_local_size(ipartition_id));
+	arma::vec deim_r_v = calc_deim(ipartition_id, r_s_v);
+	for(int i=0; i<64000; i++){
+		deim_r[i] = deim_r_v(i);
+	}
+}
+
 arma::mat GemsRom::load_snapshots(std::string suffix){
 	arma::mat snapshots_tmp, snapshots;
 	arma::Mat<int> shape;

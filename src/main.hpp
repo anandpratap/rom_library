@@ -86,7 +86,10 @@ public:
 	void get_uhat(int ipartition_id, int lq, double *q, int lqhat, double *qhat);
 	void get_u(int ipartition_id, int lq, double *q, int lqhat, double *qhat);
 
+	int get_deim_local_size(int ipartition_id);
 
+	void get_deim_local_id_idx(int ipartition_id, int *ilocal_id, int *ivar);
+	void calc_deim(int ipartition_id, double *r_s, double *deim_r);	
 };
 
 
