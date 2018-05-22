@@ -513,6 +513,15 @@ void MainRom::use_deim(int dim, int t){
 	println("-----------");
 		
 }
+
+
+arma::vec GemsRom::calc_deim(int ipartition_id, arma::vec r_s){
+	arma::mat PP;
+	PP.load("PP_p_"+std::to_string(ipartition_id), arma::arma_ascii);
+	int n_cols = PP.n_cols;
+	assert(n_cols == r_s.size());
+	return PP*r_s;
+}
 arma::mat GemsRom::load_snapshots(std::string suffix){
 	arma::mat snapshots_tmp, snapshots;
 	arma::Mat<int> shape;
@@ -575,6 +584,10 @@ int GemsRom::get_local_id(int ipartition_id, int iglobal_id){
 	assert(iglobal_id >= 0 && ipartition_id >= 0);
 	assert(partition_id[iglobal_id] == ipartition_id);
 	return local_id[iglobal_id];
+}
+
+int GemsRom::get_partition_id(int iglobal_id){
+	return partition_id[iglobal_id];
 }
 
 int GemsRom::get_global_id(int ipartition_id, int ilocal_id){

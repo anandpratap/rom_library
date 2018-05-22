@@ -11,3 +11,6 @@
 *.bin_*
 *.ascii
 *.ascii_*
+*.log
+*true_*
+up_*

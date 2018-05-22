@@ -75,9 +75,9 @@ public:
 	void load_partition_info();
 	int get_global_id(int ipartition_id, int ilocal_id);
 	int get_local_id(int ipartition_id, int iglobal_id);
-
+	int get_partition_id(int iglobal_id);
 	arma::uvec get_index(int ipartition_id, arma::uvec idx);
-
+	arma::vec calc_deim(int ipartition_id, arma::vec r_s);
 	arma::vec get_uhat(int ipartition_id, arma::vec q, int n_mode);
 	arma::vec get_u(int ipartition_id, arma::vec qhat, int n_mode);
 	void get_uhat(int ipartition_id, double* q, int nq, double *qhat, int n_mode);
