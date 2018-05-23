@@ -577,7 +577,8 @@ void GemsRom::get_deim_local_id_idx(int ipartition_id, int *ilocal_id, int *ivar
 
 void GemsRom::calc_deim(int ipartition_id, double *r_s, double *deim_r){
 	assert(r_s != nullptr);
-	arma::vec r_s_v = arma::vec(r_s, get_deim_local_size(ipartition_id));
+	assert(deim_r != nullptr);
+	arma::vec r_s_v = arma::vec(r_s, get_deim_local_size(ipartition_id), false, true);
 	double mean, stddev;
 	//	arma::umat tmp_s;
 	//tmp_s.load("deim_p_"+std::to_string(ipartition_id));
@@ -592,6 +593,9 @@ void GemsRom::calc_deim(int ipartition_id, double *r_s, double *deim_r){
 	for(int i=0; i<64000; i++){
 		deim_r[i] = deim_r_v(i);
 	}
+	// this is a temporary fix to avoid memory leak, ideally the object
+	// should delete itself
+	delete[] deim_r_v.memptr();
 }
 
 arma::mat GemsRom::load_snapshots(std::string suffix){
@@ -634,9 +638,13 @@ void GemsRom::initialize(int ipartition_id){
 void GemsRom::load_partition_info(){
 	arma::Mat<int> shape;
 	shape.load("snapshots_shape.bin", arma::raw_binary);
-	arma::Col<int> buffer(shape[1]*2);
+	//	arma::Col<int> buffer(shape[1]*2);
 	println(shape[1]);
 	buffer.load("partition.bin", arma::raw_binary);
+
+	//local_id(shape[1]);
+	//partition_id(shape[1]);
+
 	local_id = buffer.subvec(0, shape[1]-1);
 	partition_id = buffer.subvec(shape[1], shape[1]*2-1);
 

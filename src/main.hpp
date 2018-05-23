@@ -76,7 +76,7 @@ public:
 	arma::umat preload_tmp_idx;
 	arma::mat preload_PP;
 
-	arma::Col<int> local_id, partition_id;
+	arma::Col<int> local_id, partition_id,buffer;
 	arma::mat load_snapshots(std::string suffix="");
 	void initialize(int ipartition_id);
 	void load_partition_info();
