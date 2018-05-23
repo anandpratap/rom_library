@@ -22,6 +22,11 @@ module libgemsrom
         procedure :: initialize => gemsrom_initialize
         procedure :: get_u => gemsrom_get_u
         procedure :: get_uhat => gemsrom_get_uhat
+        procedure :: get_deim_n => gemsrom_get_deim_n
+        procedure :: get_deim_id => gemsrom_get_deim_id
+        procedure :: get_deim => gemsrom_get_deim
+        procedure :: renormalize => gemsrom_renormalize
+
      end type gemsrom
 
     ! This function will act as the constructor for gemsrom type
@@ -71,5 +76,38 @@ contains ! Implementation of the functions. We just wrap the C function here.
       double precision :: q(nq), qhat(n_mode)
       call gemsrom_get_u_c(this%ptr, partition_id, q, nq, qhat, n_mode)
     end subroutine gemsrom_get_u
+
+    subroutine gemsrom_get_deim_n(this, partition_id, in)
+      implicit none
+      class(gemsrom), intent(in) :: this
+      integer :: partition_id, in
+      call gemsrom_get_deim_n_c(this%ptr, partition_id, in)
+    end subroutine gemsrom_get_deim_n
+
+
+
+    subroutine gemsrom_get_deim_id(this, partition_id, isize, ilocal_id, ivar)
+      implicit none
+      class(gemsrom), intent(in) :: this
+      integer :: partition_id, isize
+      integer :: ilocal_id(:), ivar(:)
+      call gemsrom_get_deim_id_c(this%ptr, partition_id, isize, ilocal_id, ivar)
+    end subroutine gemsrom_get_deim_id
+    
+    subroutine gemsrom_get_deim(this, partition_id, isize, r_s, deim_r)
+      implicit none
+      class(gemsrom), intent(in) :: this
+      integer :: partition_id, isize
+      double precision :: r_s(:), deim_r(64000)
+      call gemsrom_get_deim_c(this%ptr, partition_id, isize, r_s, deim_r)
+    end subroutine gemsrom_get_deim
+
+    subroutine gemsrom_renormalize(this, isize, x, y)
+      implicit none
+      class(gemsrom), intent(in) :: this
+      integer :: isize
+      double precision :: x(isize), y(isize)
+      call gemsrom_renormalize_c(this%ptr, isize, x, y)
+    end subroutine gemsrom_renormalize
 
 end module

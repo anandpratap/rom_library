@@ -34,7 +34,7 @@ public:
 	
 	arma::Col<arma::uword> deim_p;
 
-	void set_snapshots(arma::mat isnapshots);
+	void set_snapshots(arma::mat isnapshots, std::string suffix="");
 	
 	void save_modes(std::string suffix="");
 
@@ -61,6 +61,8 @@ public:
 	
 	arma::vec projection_on_basis(arma::vec u, int n_mode, arma::uvec var_idx);
 	arma::vec projection_from_basis(arma::vec uhat, int n_mode, arma::uvec var_idx);
+
+	void renormalize(int isize, double *x, double *y);
 
 };
 

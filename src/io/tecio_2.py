@@ -21,8 +21,8 @@ for i in range(200):
     p[idxx] = 1.0
     p = p.reshape([8000, 8], order="C")
 
-    snap_t_pod = loadtxt("../../examples/snap_t_%i.dat"%i, skiprows=2).reshape([8000, 8], order="C")
-    snap_t_deim = loadtxt("../../examples/snap_t_deim_%i.dat"%i, skiprows=2).reshape([8000, 8], order="C")
+    snap_cxx = loadtxt("../../examples/deim_cxx_%i"%i, skiprows=2).reshape([8000, 8], order="C")
+    online_deim= loadtxt("../../../gems_2/rom_demo/fort.%i"%(i+1+10000000), skiprows=0)[-64000:].reshape([8000, 8], order="C")
 
 #    snap_t = loadtxt("../../examples/true_%i"%i, skiprows=2).reshape([8000, 8], order="C")
 
@@ -32,13 +32,13 @@ for i in range(200):
         dataset.add_variable(varname, dtypes=2, locations=0)
         zone.values(varname)[:] = p[:,idx]
     for idx, var in enumerate(var_list):
-        varname = "res_%i_snap"%(idx+1)
+        varname = "res_%i_cxx"%(idx+1)
         dataset.add_variable(varname, dtypes=2, locations=0)
-        zone.values(varname)[:] = snap_t_pod[:,idx]
+        zone.values(varname)[:] = snap_cxx[:,idx]
 
-        varname = "res_%i_deim"%(idx+1)
+        varname = "res_%i_online_deim"%(idx+1)
         dataset.add_variable(varname, dtypes=2, locations=0)
-        zone.values(varname)[:] = snap_t_deim[:,idx]
+        zone.values(varname)[:] = online_deim[:,idx]
 
     # idx = 0
     # data = np.load("snap_deim.npz")

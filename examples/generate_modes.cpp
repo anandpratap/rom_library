@@ -14,11 +14,12 @@ int main(){
 	solution->load_partition_info();
 	solution->m = new MainRom();
 	auto snapshots = solution->load_snapshots("_deim");
-	solution->m->set_snapshots(snapshots);
-	//solution->m->calc_svd();
-	//solution->m->save_modes("_deim");
+	solution->m->set_snapshots(snapshots, "_deim");
+	solution->m->calc_svd();
+	solution->m->save_modes("_deim");
 	solution->m->load_modes("_deim");
 	solution->m->calc_deim(100);
+	//exit(1);
 	arma::Col<arma::uword> deim_p;
 	deim_p.load("deim_p.bin", arma::arma_binary);
 	int ndim = deim_p.size();
@@ -67,7 +68,18 @@ int main(){
 		deim_r = solution->m->renormalize(deim_r);
 		deim_r.save("deim_parallel_"+std::to_string(i), arma::arma_ascii);
 	}
+
 	
+	for(int i=0; i<20; i++){
+		for(int proc=0; proc<10; proc++){
+			arma::umat tmp_mat_s;
+			tmp_mat_s.load("deim_p_"+std::to_string(proc));
+			arma::vec r = snapshots.col(i);
+			arma::vec r_s = r(tmp_mat_s.col(0));
+			r_s.save("r_s_"+std::to_string(i) + "_" +std::to_string(proc), arma::arma_ascii);
+		}
+	}
+
 	//for(int i=0; i<2000; i++){
 	//	solution->m->use_deim(100, i);
 	//}

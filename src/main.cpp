@@ -5,7 +5,7 @@
 
 
 
-void MainRom::set_snapshots(arma::mat isnapshots){
+void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix){
 	snapshots = isnapshots;
 	if(isnormalize==1){
 		snap_mean = arma::mean(snapshots, 1);
@@ -17,6 +17,8 @@ void MainRom::set_snapshots(arma::mat isnapshots){
 				snapshots(i, j) = (snapshots(i,j) - snap_mean(i))/(1.0 + snap_std(i));
 			}
 		}
+		snap_mean.save("snap_mean.bin"+suffix, arma::arma_binary);
+		snap_std.save("snap_std.bin"+suffix, arma::arma_binary);
 	}
 	else if(isnormalize == 2){
 		snap_mean_v = arma::vec(8);
@@ -44,7 +46,10 @@ void MainRom::set_snapshots(arma::mat isnapshots){
 				snapshots(i, j) = (snapshots(i,j) - snap_mean_v(i%8))/snap_std_v(i%8);
 			}
 		}
-
+		
+		snap_mean_v.save("snap_mean_v.bin"+suffix, arma::arma_binary);
+		snap_std_v.save("snap_std_v.bin"+suffix, arma::arma_binary);
+	
 	}
 
 	//snapshots = snapshots.cols(0, 100);
@@ -94,6 +99,16 @@ void MainRom::save_modes(std::string suffix){
 }
 
 void MainRom::load_modes(std::string suffix){
+	if(isnormalize == 1){
+		snap_mean.load("snap_mean.bin"+suffix, arma::arma_binary);
+		snap_std.load("snap_std.bin"+suffix, arma::arma_binary);
+		
+	}
+	else if(isnormalize == 2){
+		snap_mean_v.load("snap_mean_v.bin"+suffix, arma::arma_binary);
+		snap_std_v.load("snap_std_v.bin"+suffix, arma::arma_binary);
+	}
+
 	modes_spatial.load("modes_spatial.bin"+suffix, arma::arma_binary);
 	modes_temporal.load("modes_temporal.bin"+suffix, arma::arma_binary);
 	singular_values.load("singular_values.bin"+suffix, arma::arma_binary);
@@ -409,6 +424,26 @@ arma::vec MainRom::renormalize(arma::vec x, arma::uvec var_idx){
 }
 
 
+
+void MainRom::renormalize(int isize, double *x, double *y){
+	if(isnormalize==1){
+		for(arma::uword k=0; k<isize; k++){
+			y[k] = x[k]*(1.0 + snap_std(k)) + snap_mean(k);
+		}
+	}
+	else if(isnormalize==2){
+		for(arma::uword k=0; k<isize; k++){
+			y[k] = x[k]*snap_std_v(k%8) + snap_mean_v(k%8);
+		}
+	}
+	else{
+		for(arma::uword k=0; k<isize; k++){
+			y[k] = x[k];
+		}
+	}
+}
+
+
 arma::vec MainRom::normalize(arma::vec x){
 	arma::vec y(x);
 	if(isnormalize==1){
@@ -547,6 +582,16 @@ void GemsRom::get_deim_local_id_idx(int ipartition_id, int *ilocal_id, int *ivar
 void GemsRom::calc_deim(int ipartition_id, double *r_s, double *deim_r){
 	assert(r_s != nullptr);
 	arma::vec r_s_v = arma::vec(r_s, get_deim_local_size(ipartition_id));
+	double mean, stddev;
+	arma::umat tmp_s;
+	tmp_s.load("deim_p_"+std::to_string(ipartition_id));
+
+	for(int i=0; i<r_s_v.size(); i++){
+		int ivar = tmp_s(i, 2);
+		mean = m->snap_mean_v(ivar);
+		stddev = m->snap_std_v(ivar);
+		r_s_v(i) = (r_s_v(i) - mean)/stddev;
+	}
 	arma::vec deim_r_v = calc_deim(ipartition_id, r_s_v);
 	for(int i=0; i<64000; i++){
 		deim_r[i] = deim_r_v(i);
@@ -581,10 +626,10 @@ void GemsRom::initialize(){
 	catch(std::bad_alloc &e){
 		std::cout<<e.what()<<std::endl;
 	}
-	arma::mat snapshots = load_snapshots();
-	m->set_snapshots(snapshots);
+	//arma::mat snapshots = load_snapshots("_deim");
+	//m->set_snapshots(snapshots);
 	load_partition_info();
-	m->load_modes();
+	m->load_modes("_deim");
 }
 
 void GemsRom::load_partition_info(){

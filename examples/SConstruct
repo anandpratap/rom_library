@@ -15,6 +15,10 @@ cenv.Program("testcxx", SOURCES, LIBS=LIBS)
 SOURCES = ["generate_modes.cpp"]
 cenv.Program("generate_modes", SOURCES, LIBS=LIBS)
 
+LIBS = ["main_c", "main_cxx", "armadillo"]
+SOURCES = ["test_deim_cxx.cpp"]
+cenv.Program("test_deim_cxx", SOURCES, LIBS=LIBS)
+
 
 LIBS = ["armadillo", "lapack", "blas"]
 LIBS.append("rom")
