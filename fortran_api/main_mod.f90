@@ -54,10 +54,11 @@ contains ! Implementation of the functions. We just wrap the C function here.
         call delete_gemsrom_c(this%ptr)
     end subroutine
 
-    subroutine gemsrom_initialize(this)
+    subroutine gemsrom_initialize(this, partition_id)
       implicit none
       class(gemsrom), intent(in) :: this
-      call gemsrom_initialize_c(this%ptr)
+      integer :: partition_id
+      call gemsrom_initialize_c(this%ptr, partition_id)
     end subroutine gemsrom_initialize
 
 

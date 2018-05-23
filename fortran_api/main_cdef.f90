@@ -11,12 +11,13 @@
        type(c_ptr), value :: gemsrom
      end subroutine delete_gemsrom_c
 
-     subroutine gemsrom_initialize_c(gemsrom) bind(C, name="gemsrom_initialize")
+     subroutine gemsrom_initialize_c(gemsrom, partition_id) bind(C, name="gemsrom_initialize")
        use iso_c_binding
        implicit none
        !integer(c_void) :: gemsrom_initialize_c
        ! The const qualification is translated into an intent(in)
        type(c_ptr), intent(in), value :: gemsrom
+       integer(c_int), intent(in), value :: partition_id
      end subroutine gemsrom_initialize_c
      
      subroutine gemsrom_get_uhat_c(gemsrom, partition_id, q, nq, qhat, n_mode) bind(C, name="gemsrom_get_uhat")

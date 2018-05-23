@@ -10,7 +10,7 @@ extern "C" {
 #endif
 	gemsrom* create_gemsrom(void);
 	void delete_gemsrom(gemsrom* gr);
-	void gemsrom_initialize(gemsrom *gr);
+	void gemsrom_initialize(gemsrom *gr, int ipartition_id);
 	void gemsrom_get_uhat(gemsrom *gr, int partition_id, double *q, int nq, double *qhat, int n_mode);
 	void gemsrom_get_u(gemsrom *gr, int partition_id, double *q, int nq, double *qhat, int n_mode);
 	void gemsrom_get_deim_n(gemsrom *gr, int partition_id, int &in);

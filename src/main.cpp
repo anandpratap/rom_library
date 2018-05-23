@@ -551,19 +551,15 @@ void MainRom::use_deim(int dim, int t){
 
 
 arma::vec GemsRom::calc_deim(int ipartition_id, arma::vec r_s){
-	arma::mat PP;
-	PP.load("PP_p_"+std::to_string(ipartition_id), arma::arma_ascii);
-	int n_cols = PP.n_cols;
+	int n_cols = preload_PP.n_cols;
 	assert(n_cols == r_s.size());
-	return PP*r_s;
+	return preload_PP*r_s;
 }
 
 
 
 int GemsRom::get_deim_local_size(int ipartition_id){
-	arma::mat PP;
-	PP.load("PP_p_"+std::to_string(ipartition_id), arma::arma_ascii);
-	int n_cols = PP.n_cols;
+	int n_cols = preload_PP.n_cols;
 	return n_cols;
 }
 
@@ -583,11 +579,11 @@ void GemsRom::calc_deim(int ipartition_id, double *r_s, double *deim_r){
 	assert(r_s != nullptr);
 	arma::vec r_s_v = arma::vec(r_s, get_deim_local_size(ipartition_id));
 	double mean, stddev;
-	arma::umat tmp_s;
-	tmp_s.load("deim_p_"+std::to_string(ipartition_id));
+	//	arma::umat tmp_s;
+	//tmp_s.load("deim_p_"+std::to_string(ipartition_id));
 
 	for(int i=0; i<r_s_v.size(); i++){
-		int ivar = tmp_s(i, 2);
+		int ivar = preload_tmp_idx(i, 2);
 		mean = m->snap_mean_v(ivar);
 		stddev = m->snap_std_v(ivar);
 		r_s_v(i) = (r_s_v(i) - mean)/stddev;
@@ -619,7 +615,7 @@ arma::mat GemsRom::load_snapshots(std::string suffix){
 	}
 	return snapshots;
 }
-void GemsRom::initialize(){
+void GemsRom::initialize(int ipartition_id){
 	try{
 		m = new MainRom();
 	}
@@ -630,6 +626,9 @@ void GemsRom::initialize(){
 	//m->set_snapshots(snapshots);
 	load_partition_info();
 	m->load_modes("_deim");
+	
+	preload_tmp_idx.load("deim_p_"+std::to_string(ipartition_id));
+	preload_PP.load("PP_p_"+std::to_string(ipartition_id), arma::arma_ascii);
 }
 
 void GemsRom::load_partition_info(){

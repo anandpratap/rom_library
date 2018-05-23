@@ -30,6 +30,7 @@ public:
 	arma::mat modes_spatial;
 	arma::mat modes_temporal;
 	arma::vec singular_values;
+
 	int isnormalize = 2;
 	
 	arma::Col<arma::uword> deim_p;
@@ -71,9 +72,13 @@ private:
 public:
 	MainRom *m;
 	int num_processor;
+
+	arma::umat preload_tmp_idx;
+	arma::mat preload_PP;
+
 	arma::Col<int> local_id, partition_id;
 	arma::mat load_snapshots(std::string suffix="");
-	void initialize();
+	void initialize(int ipartition_id);
 	void load_partition_info();
 	int get_global_id(int ipartition_id, int ilocal_id);
 	int get_local_id(int ipartition_id, int iglobal_id);

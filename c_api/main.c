@@ -10,8 +10,8 @@ void delete_gemsrom(gemsrom* gr){
 	delete gr;
 };
 
-void gemsrom_initialize(gemsrom* gr){
-	gr->initialize();
+void gemsrom_initialize(gemsrom* gr, int ipartition_id){
+	gr->initialize(ipartition_id);
 };
 
 void gemsrom_get_uhat(gemsrom *gr, int partition_id, double *q, int nq, double *qhat, int n_mode){
