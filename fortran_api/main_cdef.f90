@@ -73,5 +73,14 @@
        real(c_double) :: x(isize), y(isize)
      end subroutine gemsrom_renormalize_c
 
+
+     subroutine gemsrom_get_global_id_c(gemsrom, partition_id, local_id, global_id) bind(C, name="gemsrom_get_global_id")
+       use iso_c_binding
+       implicit none
+       type(c_ptr), intent(in), value :: gemsrom
+       integer(c_int), intent(in), value :: partition_id, local_id
+       integer(c_int), intent(inout) :: global_id
+     end subroutine gemsrom_get_global_id_c
+
      
   end interface

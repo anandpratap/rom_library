@@ -17,6 +17,8 @@ extern "C" {
 	void gemsrom_get_deim_idx(gemsrom *gr, int partition_id, int isize, int *ilocal_id, int *ivar);
 	void gemsrom_calc_deim(gemsrom *gr, int partition_id, int isize, double *r_s, double *deim_r);
 	void gemsrom_renormalize(gemsrom *gr, int isize, double *x, double *y);
+	void gemsrom_get_global_id(gemsrom *gr, int ipartition_id, int ilocal_id, int &iglobal_id);
+
 #ifdef __cplusplus
 }
 #endif

@@ -36,3 +36,9 @@ void gemsrom_renormalize(gemsrom *gr, int isize, double *x, double *y){
 	gr->m->renormalize(isize, x, y);
 };
 
+
+void gemsrom_get_global_id(gemsrom *gr, int ipartition_id, int ilocal_id, int &iglobal_id){
+	iglobal_id = gr->get_global_id(ipartition_id, ilocal_id);
+	assert(iglobal_id < 8000);
+	assert(iglobal_id >= 0);
+};

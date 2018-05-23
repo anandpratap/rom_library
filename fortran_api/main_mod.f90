@@ -26,7 +26,7 @@ module libgemsrom
         procedure :: get_deim_id => gemsrom_get_deim_id
         procedure :: get_deim => gemsrom_get_deim
         procedure :: renormalize => gemsrom_renormalize
-
+        procedure :: get_global_id => gemsrom_get_global_id
      end type gemsrom
 
     ! This function will act as the constructor for gemsrom type
@@ -110,5 +110,14 @@ contains ! Implementation of the functions. We just wrap the C function here.
       double precision :: x(isize), y(isize)
       call gemsrom_renormalize_c(this%ptr, isize, x, y)
     end subroutine gemsrom_renormalize
+
+
+    subroutine gemsrom_get_global_id(this, partition_id, local_id, global_id)
+      implicit none
+      class(gemsrom), intent(in) :: this
+      integer :: partition_id, global_id, local_id
+      call gemsrom_get_global_id_c(this%ptr, partition_id, local_id, global_id)
+    end subroutine gemsrom_get_global_id
+
 
 end module
