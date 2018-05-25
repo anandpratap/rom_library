@@ -5,7 +5,7 @@ AddOption("--intel", action="store_true", dest="intel", default=False)
 AddOption("--dbg", action="store_true", dest="dbg", default=False)
 
 env = Environment(ENV=os.environ)
-libraries = ["src", "c_api", "fortran_api"]
+libraries = ["src", "c_api", "fortran_api", "python_api"]
 
 arma_dir = os.environ["ARMA_DIR"]
 env.Append(CPPPATH=[os.path.join(arma_dir, "include")])

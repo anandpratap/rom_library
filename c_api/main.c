@@ -2,6 +2,20 @@
 #include "../src/main.hpp"
 #include <iostream>
 
+mainrom* create_mainrom(void){
+	return new MainRom();
+};
+void mainrom_save_modes(mainrom *mr, char* suffix){
+	mr->save_modes(suffix);
+};
+void mainrom_load_modes(mainrom *mr, char* suffix){
+	mr->load_modes(suffix);
+};
+void mainrom_calc_svd(mainrom *mr){
+	mr->calc_svd();
+};
+
+
 gemsrom *create_gemsrom(void){
 	return new GemsRom();
 }

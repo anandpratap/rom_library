@@ -5,9 +5,19 @@
 extern "C" {
 	class GemsRom;
 	typedef GemsRom gemsrom;
+	class MainRom;
+	typedef MainRom mainrom;
 #else
-	typedef struct gemsrom gemsrom;
+	typedef struct GemsRom gemsrom;
+	typedef struct MainRom mainrom;
 #endif
+
+	mainrom* create_mainrom(void);
+	void mainrom_save_modes(mainrom *mr, char* suffix="");
+	void mainrom_load_modes(mainrom *mr, char* suffix="");
+	void mainrom_calc_svd(mainrom *mr);
+
+	
 	gemsrom* create_gemsrom(void);
 	void delete_gemsrom(gemsrom* gr);
 	void gemsrom_initialize(gemsrom *gr, int ipartition_id);

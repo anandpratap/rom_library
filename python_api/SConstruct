@@ -1,0 +1,17 @@
+from sysconfig import get_paths
+python_include=get_paths()["include"]
+python_lib=get_paths()["stdlib"]
+
+Import("env")
+env.Append(CPPPATH=[python_include, "#/c_api"])
+env.Append(LIBPATH=[python_lib])
+
+
+cython = Builder(action = "cython $CYTHONFLAGS -o $TARGET $SOURCE")
+env.Append(BUILDERS = {'Cython' : cython})
+env.Cython(source="rom.pyx", target="rom.c")
+
+
+SOURCES = ["rom.c"]
+LIBS = ["main_c", "python2.7"]
+env.SharedLibrary("#/lib/rom", SOURCES, LIBS=LIBS, SHLIBPREFIX="")
