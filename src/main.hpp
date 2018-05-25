@@ -5,6 +5,9 @@
 #include <armadillo>
 #include "../external/Eigen/Dense"
 
+#define DEIM_MODE_VECTOR 0
+#define DEIM_MODE_CELL 1
+
 template<typename T>
 void print(T s){
 	std::cout<<s;
@@ -33,15 +36,17 @@ public:
 	arma::mat modes_temporal;
 	arma::vec singular_values;
 
-	int isnormalize = 2;
-	
+	int isnormalize = 3;
+	int deim_mode = DEIM_MODE_VECTOR;
 	arma::Col<arma::uword> deim_p;
 
+	void set_snapshots(int idim, int insamples, double *isnapshots);
 	void set_snapshots(arma::mat isnapshots, std::string suffix="");
 	
 	void save_modes(std::string suffix="");
 
 	void load_modes(std::string suffix="");
+	arma::mat get_var_modes(int ivar_idx);
 
 	void calc_svd();
 

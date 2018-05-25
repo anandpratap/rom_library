@@ -14,6 +14,12 @@ arma::mat eigen_matrix_to_arma(MatrixXd me){
 	return m;
 }
 
+void MainRom::set_snapshots(int idim, int insamples, double *isnapshots){
+	assert(isnapshots != nullptr);
+	arma::mat tmp_snapshots = arma::mat(isnapshots, idim, insamples, false, true);
+	set_snapshots(tmp_snapshots, "");
+}
+
 
 void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix){
 	snapshots = isnapshots;
@@ -78,7 +84,7 @@ void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix){
 			}
 			assert(k == ncv*nt);
 			snap_mean_v(i) = arma::mean(Var);
-			snap_std_v(i) = Var.max();
+			snap_std_v(i) = arma::abs(Var).max();
 		}
 		//snap_mean_v(2) = snap_mean_v(1);
 		//snap_std_v(2) = snap_std_v(1);
@@ -141,21 +147,28 @@ void MainRom::save_modes(std::string suffix){
 }
 
 void MainRom::load_modes(std::string suffix){
+	isnormalize = 3;
+
+	println("LOADING MODES" + std::to_string(isnormalize));
+   
 	if(isnormalize == 1){
 		snap_mean.load("snap_mean.bin"+suffix, arma::arma_binary);
 		snap_std.load("snap_std.bin"+suffix, arma::arma_binary);
 		
 	}
-	else if(isnormalize == 2){
+	else if(isnormalize == 2 || isnormalize == 3){
+		println("LOADING STD");
 		snap_mean_v.load("snap_mean_v.bin"+suffix, arma::arma_binary);
 		snap_std_v.load("snap_std_v.bin"+suffix, arma::arma_binary);
 	}
 
 	modes_spatial.load("modes_spatial.bin"+suffix, arma::arma_binary);
-	modes_spatial.save("modes_spatial_raw.bin"+suffix, arma::raw_binary);
+	//	modes_spatial.save("modes_spatial_raw.bin"+suffix, arma::raw_binary);
 	
 	modes_temporal.load("modes_temporal.bin"+suffix, arma::arma_binary);
 	singular_values.load("singular_values.bin"+suffix, arma::arma_binary);
+	println("LOADED MODES");
+
 }
 	
 void MainRom::calc_svd(){
@@ -174,8 +187,21 @@ void MainRom::reconstruct(int n_mode){
 	print("Error in reconstruction: "); println(arma::norm(error, 2)/error.size());
 }
 
+arma::mat MainRom::get_var_modes(int ivar_idx){
+	arma::uvec var_indices = arma::regspace<arma::uvec>(ivar_idx, 8, 64000-1);
+	var_indices.print();
+	return modes_spatial.rows(var_indices);
+}
+
 void MainRom::calc_qdeim(int dim){
-	arma::mat sub_basis = modes_spatial(arma::span::all, arma::span(0, dim-1));
+	arma::mat sub_basis;
+	if(deim_mode == DEIM_MODE_VECTOR){
+		sub_basis = modes_spatial(arma::span::all, arma::span(0, dim-1));
+	}
+	else if(deim_mode == DEIM_MODE_CELL){
+		arma::mat tmp_modes = get_var_modes(3);
+		sub_basis = tmp_modes(arma::span::all, arma::span(0, dim-1));
+	}
 	MatrixXd eigen_sub_basis = arma_matrix_to_eigen(sub_basis);
 	std::cout<<" Calculating QR"<<std::endl;
 	// do qr
@@ -194,8 +220,26 @@ void MainRom::calc_qdeim(int dim){
 		std::cout<<p_ind(i)<<std::endl;
 	}
 	//std::cout<<P;
-	pp.save("deim_p.bin", arma::arma_binary);
-	pp.save("deim_p.ascii", arma::arma_ascii);
+
+	if(deim_mode == DEIM_MODE_VECTOR){
+		assert(pp.min() >= 0);
+		assert(pp.max() < 64000);
+		pp.save("deim_p.bin", arma::arma_binary);
+		pp.save("deim_p.ascii", arma::arma_ascii);
+
+	}
+	else if(deim_mode == DEIM_MODE_CELL){
+		assert(pp.min() >= 0);
+		assert(pp.max() < 8000);
+		arma::uvec ppp = arma::uvec(pp.size()*8);
+		for(int i=0; i<pp.size(); i++){
+			for(int j=0; j<8; j++){
+				ppp(i*8 + j) = pp(i)*8 + j;
+			}
+		}
+		ppp.save("deim_p.bin", arma::arma_binary);
+		ppp.save("deim_p.ascii", arma::arma_ascii);
+	}
 }
 
 	
@@ -653,7 +697,7 @@ void GemsRom::calc_deim(int ipartition_id, double *r_s, double *deim_r){
 	double mean, stddev;
 	//	arma::umat tmp_s;
 	//tmp_s.load("deim_p_"+std::to_string(ipartition_id));
-
+	//m->snap_mean_v.print();
 	for(int i=0; i<r_s_v.size(); i++){
 		int ivar = preload_tmp_idx(i, 2);
 		mean = m->snap_mean_v(ivar);
@@ -702,8 +746,8 @@ void GemsRom::initialize(int ipartition_id){
 	load_partition_info();
 	m->load_modes("_deim");
 	
-	preload_tmp_idx.load("deim_p_"+std::to_string(ipartition_id));
-	preload_PP.load("PP_p_"+std::to_string(ipartition_id), arma::arma_ascii);
+	preload_tmp_idx.load("deim_p_"+std::to_string(ipartition_id), arma::arma_binary);
+	preload_PP.load("PP_p_"+std::to_string(ipartition_id), arma::arma_binary);
 }
 
 void GemsRom::load_partition_info(){
