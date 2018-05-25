@@ -3,6 +3,8 @@
 #include <cassert>
 #include <iostream>
 #include <armadillo>
+#include "../external/Eigen/Dense"
+
 template<typename T>
 void print(T s){
 	std::cout<<s;
@@ -45,6 +47,7 @@ public:
 
 	void reconstruct(int n_mode=11);
 	void calc_deim(int dim);
+	void calc_qdeim(int dim);
 
 	void calc_adeim(int dim, int m, int tidx);
 	arma::vec renormalize(arma::vec x);

@@ -2,7 +2,17 @@
 #include <armadillo>
 #include <cassert>
 #include "main.hpp"
+using MatrixXd = Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>;
 
+MatrixXd arma_matrix_to_eigen(arma::mat m){
+	Eigen::MatrixXd me = Eigen::Map<Eigen::MatrixXd>(m.memptr(), m.n_rows, m.n_cols);
+	return me;
+}
+
+arma::mat eigen_matrix_to_arma(MatrixXd me){
+	arma::mat m = arma::mat(me.data(), me.rows(), me.cols(), false, false);
+	return m;
+}
 
 
 void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix){
@@ -40,6 +50,38 @@ void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix){
 		}
 		snap_mean_v(2) = snap_mean_v(1);
 		snap_std_v(2) = snap_std_v(1);
+
+		for(arma::uword j=0; j<snapshots.n_cols; j++){
+			for(arma::uword i=0; i<snapshots.n_rows; i++){
+				snapshots(i, j) = (snapshots(i,j) - snap_mean_v(i%8))/snap_std_v(i%8);
+			}
+		}
+		
+		snap_mean_v.save("snap_mean_v.bin"+suffix, arma::arma_binary);
+		snap_std_v.save("snap_std_v.bin"+suffix, arma::arma_binary);
+	
+	}
+	
+	else if(isnormalize == 3){
+		snap_mean_v = arma::vec(8);
+		snap_std_v = arma::vec(8);
+		int ncv = snapshots.n_rows/8;
+		int nt = snapshots.n_cols;
+		arma::vec Var(ncv*nt);
+		for(int i=0; i<8; i++){
+			int k=0;
+			for(int icv=0; icv<ncv; icv++){
+				for(int t=0; t<nt; t++){
+					Var(k) = snapshots(icv*8 + i, t);
+					k+=1;
+				}
+			}
+			assert(k == ncv*nt);
+			snap_mean_v(i) = arma::mean(Var);
+			snap_std_v(i) = Var.max();
+		}
+		//snap_mean_v(2) = snap_mean_v(1);
+		//snap_std_v(2) = snap_std_v(1);
 
 		for(arma::uword j=0; j<snapshots.n_cols; j++){
 			for(arma::uword i=0; i<snapshots.n_rows; i++){
@@ -110,6 +152,8 @@ void MainRom::load_modes(std::string suffix){
 	}
 
 	modes_spatial.load("modes_spatial.bin"+suffix, arma::arma_binary);
+	modes_spatial.save("modes_spatial_raw.bin"+suffix, arma::raw_binary);
+	
 	modes_temporal.load("modes_temporal.bin"+suffix, arma::arma_binary);
 	singular_values.load("singular_values.bin"+suffix, arma::arma_binary);
 }
@@ -129,6 +173,32 @@ void MainRom::reconstruct(int n_mode){
 	print_mat_shape(error, "error: ");
 	print("Error in reconstruction: "); println(arma::norm(error, 2)/error.size());
 }
+
+void MainRom::calc_qdeim(int dim){
+	arma::mat sub_basis = modes_spatial(arma::span::all, arma::span(0, dim-1));
+	MatrixXd eigen_sub_basis = arma_matrix_to_eigen(sub_basis);
+	std::cout<<" Calculating QR"<<std::endl;
+	// do qr
+	Eigen::ColPivHouseholderQR<MatrixXd> qr(eigen_sub_basis.transpose());
+	//qr.compute(eigen_sub_basis.transpose());
+	std::cout<<" DONE QR"<<std::endl;
+	
+	int m = sub_basis.n_cols;
+	Eigen::ColPivHouseholderQR<Eigen::MatrixXd>::PermutationType P(qr.colsPermutation());
+	auto p_ind = P.indices();
+	std::cout<<P.rows()<<" "<<P.cols();
+	std::cout<<p_ind.rows()<<" "<<p_ind.cols();
+	arma::uvec pp(dim);
+	for(int i=0; i<dim; i++){
+		pp(i) = p_ind(i);
+		std::cout<<p_ind(i)<<std::endl;
+	}
+	//std::cout<<P;
+	pp.save("deim_p.bin", arma::arma_binary);
+	pp.save("deim_p.ascii", arma::arma_ascii);
+}
+
+	
 
 void MainRom::calc_deim(int dim){
 	arma::Col<arma::uword> p(dim);
@@ -154,8 +224,9 @@ void MainRom::calc_deim(int dim){
 		arma::uword imax = rabs.index_max();
 		p(i) = imax;
 	}
-	p.print();
+	arma::sort(p).print();
 	deim_p = p;
+	
 	//P.save("P.bin", arma::arma_binary);
 	//p.save("p_idx.bin", arma::arma_binary);
 	deim_p.save("deim_p.bin", arma::arma_binary);
@@ -390,7 +461,7 @@ arma::vec MainRom::renormalize(arma::vec x){
 			y(k) = x(k)*(1.0 + snap_std(k)) + snap_mean(k);
 		}
 	}
-	else if(isnormalize==2){
+	else if(isnormalize==2 || isnormalize==3){
 		for(arma::uword k=0; k<x.size(); k++){
 			y(k) = x(k)*snap_std_v(k%8) + snap_mean_v(k%8);
 		}
@@ -410,7 +481,7 @@ arma::vec MainRom::renormalize(arma::vec x, arma::uvec var_idx){
 			y(k) = x(k)*(1.0 + snap_std(var_idx(k))) + snap_mean(var_idx(k));
 		}
 	}
-	else if(isnormalize==2){
+	else if(isnormalize==2 || isnormalize ==3){
 		for(arma::uword k=0; k<x.size(); k++){
 			y(k) = x(k)*snap_std_v(var_idx(k)%8) + snap_mean_v(var_idx(k)%8);
 		}
@@ -431,7 +502,7 @@ void MainRom::renormalize(int isize, double *x, double *y){
 			y[k] = x[k]*(1.0 + snap_std(k)) + snap_mean(k);
 		}
 	}
-	else if(isnormalize==2){
+	else if(isnormalize==2 || isnormalize==3){
 		for(arma::uword k=0; k<isize; k++){
 			y[k] = x[k]*snap_std_v(k%8) + snap_mean_v(k%8);
 		}
@@ -451,7 +522,7 @@ arma::vec MainRom::normalize(arma::vec x){
 			y(k) = (x(k) - snap_mean(k))/(1.0 + snap_std(k));
 		}
 	}
-	else if(isnormalize==2){
+	else if(isnormalize==2 || isnormalize==3){
 		for(arma::uword k=0; k<x.size(); k++){
 			y(k) = (x(k) - snap_mean_v(k%8))/snap_std_v(k%8);
 		}
@@ -472,7 +543,7 @@ arma::vec MainRom::normalize(arma::vec x, arma::uvec var_idx){
 			y(k) = (x(k) - snap_mean(var_idx(k)))/(1.0 + snap_std(var_idx(k)));
 		}
 	}
-	else if(isnormalize==2){
+	else if(isnormalize==2 || isnormalize==3){
 		for(arma::uword k=0; k<x.size(); k++){
 			y(k) = (x(k) - snap_mean_v(var_idx(k)%8))/snap_std_v(var_idx(k)%8);
 		}
