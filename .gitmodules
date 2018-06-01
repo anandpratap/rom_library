@@ -8,3 +8,6 @@
 	url = git@github.com:SCons/scons.git
 	branch = rel_3.0.1
 	ignore = dirty
+[submodule "external/args"]
+	path = external/args
+	url = git@github.com:Taywee/args.git
