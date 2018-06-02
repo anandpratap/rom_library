@@ -34,40 +34,58 @@ class TecplotImporter(object):
         num_elements = zone.num_elements
         time = zone.solution_time
         variables = list(zone.dataset.variables())
-        data = {}
+        data = self.read_vars_to_dict(dataset, self.variables_of_interest, num_elements)
+        if deim:
+            data_deim = self.read_vars_to_dict(dataset, self.variables_of_interest_deim, num_elements)
+
+        output = [data]
+        if deim:
+            output.append(data_deim)
+        return output
+
+    def read_vars_to_dict(self, dataset, variables_list, num_elements):
+        zone = dataset.zone(0)
+        variables = list(zone.dataset.variables())
+        nvar = len(variables_list)
+        data = np.zeros([num_elements, nvar], dtype=np.float64)
         for v in variables:
-            if deim:
-                if v.name in self.variables_of_interest_deim:
-                    data[v.name] = zone.values(v.name).as_numpy_array().astype(np.float64)
-            else:
-                if v.name in self.variables_of_interest:
-                    data[v.name] = zone.values(v.name).as_numpy_array().astype(np.float64)
+            if v.name in variables_list:
+                idx = variables_list.index(v.name)
+                data[:,idx] = zone.values(v.name).as_numpy_array().astype(np.float64)
         return data
 
+    def query_ncv(self, filename):
+        dataset = tecplot.data.load_tecplot(filename, read_data_option=2)
+        zone = dataset.zone(0)
+        num_variables = zone.num_variables
+        num_points = zone.num_points
+        num_elements = zone.num_elements
+        return num_elements
+    
     def read_plts(self, start=1, end=100, step=1, deim=False):
-        data = self.read_data(get_filename(start), deim)
-        if deim:
-            ncv = data[self.variables_of_interest_deim[0]].size
-        else:
-            ncv = data[self.variables_of_interest[0]].size
+        ncv = self.query_ncv(get_filename(start))
         nvar = len(self.variables_of_interest)
         nt = (end + 1 - start)/step
+
         data_array = np.zeros([nt, ncv, nvar], dtype=np.float64)
+        if deim:
+            data_array_deim = np.zeros([nt, ncv, nvar], dtype=np.float64)
         for fidx, time in enumerate(range(start, end+1, step)):
             print "Loading plts %i of %i"%(fidx+1, end+1-start) 
-            data = self.read_data(get_filename(time), deim)
+            output_data = self.read_data(get_filename(time), deim)
             if deim:
-                for vidx, var in enumerate(self.variables_of_interest_deim):
-                    data_array[fidx, :, vidx] = data[var]
+                    data_array_deim[fidx, :, :] = output_data[1][:,:]
             else:
-                for vidx, var in enumerate(self.variables_of_interest):
-                    data_array[fidx, :, vidx] = data[var]
+                    data_array[fidx, :, :] = output_data[0][:,:]
             # figure()
             # plot(data["Eq_1_residual"])
             # plot(data_array[fidx,:,0])
             # print "fidx-1", fidx
             # show()
-        return data_array
+        output = [data_array]
+        if deim:
+            output.append(data_array_deim)
+        return output
 
     def save_plts(self):
         dataset = tecplot.data.load_tecplot(filename, read_data_option=2)
@@ -77,9 +95,9 @@ class TecplotImporter(object):
 if __name__ == "__main__":
     t = TecplotImporter()
     t.read_parition_file()
-    end = 2000
-    data_array = t.read_plts(start=1, end=end, step=1)
-    data_array_deim = t.read_plts(start=1, end=end, step=1, deim=True)
+    start = 5000
+    end = 11000
+    data_array, data_array_deim = t.read_plts(start=start, end=end, step=1, deim=True)
     nt, ncv, nvar = data_array.shape
     sizes = np.array([nt, ncv, nvar], dtype=np.int32)
     sizes.tofile("snapshots_shape.bin")
