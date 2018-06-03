@@ -1,7 +1,29 @@
 #include <iostream>
+#include <fstream>
 #include <armadillo>
 #include <cassert>
 #include "main.hpp"
+
+arma::mat load_arma_binary_partial(std::string filename, int n_cols){
+	std::ifstream f;
+	f.open(filename.c_str(), std::fstream::binary);
+	std::string f_header;
+	arma::uword f_n_rows;
+	arma::uword f_n_cols;
+	arma::mat x;
+	f >> f_header;
+	f >> f_n_rows;
+	f >> f_n_cols;
+	assert(n_cols <= f_n_cols);
+	arma::uword skipcols = f_n_cols - n_cols;
+	
+	f.get();
+	x.set_size(f_n_rows, n_cols);
+	arma::uword n_elem = f_n_rows*n_cols;
+	f.read(reinterpret_cast<char *>(x.memptr()), std::streamsize(n_elem*sizeof(double)));
+	return x;
+}
+
 using MatrixXd = Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>;
 
 MatrixXd arma_matrix_to_eigen(arma::mat m){
@@ -87,7 +109,7 @@ void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix){
 			snap_std_v(i) = arma::abs(Var).max();
 		}
 		//snap_mean_v(2) = snap_mean_v(1);
-		//snap_std_v(2) = snap_std_v(1);
+		snap_std_v(2) = snap_std_v(1);
 
 		for(arma::uword j=0; j<snapshots.n_cols; j++){
 			for(arma::uword i=0; i<snapshots.n_rows; i++){
@@ -101,8 +123,8 @@ void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix){
 	}
 
 	//snapshots = snapshots.cols(0, 100);
-	print_mat_shape(this->snapshots, "Snapshots: ");
-	println(this->snapshots(0,0));
+	//print_mat_shape(this->snapshots, "Snapshots: ");
+	//println(this->snapshots(0,0));
 }
 
 arma::vec MainRom::projection_on_basis(arma::vec u, int n_mode){
@@ -148,27 +170,26 @@ void MainRom::save_modes(std::string suffix){
 
 void MainRom::load_modes(std::string suffix){
 	isnormalize = 3;
-
-	println("LOADING MODES" + std::to_string(isnormalize));
-   
+	
 	if(isnormalize == 1){
 		snap_mean.load("snap_mean.bin"+suffix, arma::arma_binary);
 		snap_std.load("snap_std.bin"+suffix, arma::arma_binary);
 		
 	}
 	else if(isnormalize == 2 || isnormalize == 3){
-		println("LOADING STD");
 		snap_mean_v.load("snap_mean_v.bin"+suffix, arma::arma_binary);
 		snap_std_v.load("snap_std_v.bin"+suffix, arma::arma_binary);
 	}
-
-	modes_spatial.load("modes_spatial.bin"+suffix, arma::arma_binary);
+	// if(n_cols > 0){
+	// 	modes_spatial = load_arma_binary_partial("modes_spatial.bin"+suffix, n_cols);
+	// }
+	// else{
+	// 	modes_spatial.load("modes_spatial.bin"+suffix, arma::arma_binary);
+	// }
 	//	modes_spatial.save("modes_spatial_raw.bin"+suffix, arma::raw_binary);
 	
-	modes_temporal.load("modes_temporal.bin"+suffix, arma::arma_binary);
-	singular_values.load("singular_values.bin"+suffix, arma::arma_binary);
-	println("LOADED MODES");
-
+	//modes_temporal.load("modes_temporal.bin"+suffix, arma::arma_binary);
+	//singular_values.load("singular_values.bin"+suffix, arma::arma_binary);
 }
 	
 void MainRom::calc_svd(){
@@ -710,28 +731,19 @@ void GemsRom::calc_deim(int ipartition_id, double *r_s, double *deim_r){
 	}
 	// this is a temporary fix to avoid memory leak, ideally the object
 	// should delete itself
-	delete[] deim_r_v.memptr();
+	try{
+		//delete[] deim_r_v.memptr();
+	}
+	catch(...){
+		
+	}
 }
 
 arma::mat GemsRom::load_snapshots(std::string suffix){
-	arma::mat snapshots_tmp, snapshots;
-	arma::Mat<int> shape;
+	arma::mat snapshots;
 	std::string filename = "snapshots_solution.bin"+suffix;
 	println("Reading file: " + filename);
-	shape.load("snapshots_shape.bin", arma::raw_binary);
-	snapshots_tmp.load(filename, arma::raw_binary);
-	int nt = shape[0];
-	int ncv = shape[1];
-	int nvar = shape[2];
-	snapshots.set_size(shape[1]*shape[2], shape[0]);
-
-	for(int i=0; i<shape[0]; i++){
-		for(int j=0; j<shape[1]; j++){
-			for(int k=0; k<shape[2]; k++){
-				snapshots(j*shape[2] + k, i) = snapshots_tmp(i*shape[2]*shape[1] + j*shape[2] + k);
-			}
-		}
-	}
+	snapshots.load(filename, arma::arma_binary);
 	return snapshots;
 }
 void GemsRom::initialize(int ipartition_id){
@@ -744,7 +756,7 @@ void GemsRom::initialize(int ipartition_id){
 	//arma::mat snapshots = load_snapshots("_deim");
 	//m->set_snapshots(snapshots);
 	load_partition_info();
-	m->load_modes("_deim");
+	m->load_modes("_residual");
 	
 	preload_tmp_idx.load("deim_p_"+std::to_string(ipartition_id), arma::arma_binary);
 	preload_PP.load("PP_p_"+std::to_string(ipartition_id), arma::arma_binary);
