@@ -5,7 +5,9 @@ AddOption("--intel", action="store_true", dest="intel", default=False)
 AddOption("--dbg", action="store_true", dest="dbg", default=False)
 
 env = Environment(ENV=os.environ)
-libraries = ["src", "c_api", "fortran_api", "python_api"]
+env.Decider('timestamp-newer')
+
+libraries = ["src", "c_api", "fortran_api"]
 
 arma_dir = os.environ["ARMA_DIR"]
 env.Append(CPPPATH=[os.path.join(arma_dir, "include")])
@@ -18,6 +20,7 @@ elif os.path.isdir(os.path.join(arma_dir, "lib64")):
 env.Append(CXXFLAGS=["-DARMA_DONT_USE_HDF5"])
 env.Append(CCFLAGS=["-DARMA_DONT_USE_HDF5"])
 env.Append(CXXFLAGS=["-std=c++11", "-Wall", "-Wextra"])
+env.Append(CCFLAGS=["-std=c++11", "-Wall", "-Wextra"])
 
 if GetOption("intel_mpi"):
     env['CXX'] = "mpicxx"
@@ -44,8 +47,3 @@ env.Append(LIBPATH=["#/lib"])
 
 if GetOption("build_examples"):
     env.SConscript(os.path.join("examples", "SConstruct"), exports="env", variant_dir=os.path.join("#build", "examples"), duplicate=0)
-
-combine_libs = Builder(action = "ar -rcT $TARGET $SOURCES")
-env.Append(BUILDERS = {'combine_libs' : combine_libs})
-env.combine_libs("lib/librom.a", Glob("lib/libmain_*.a"))
-                       
