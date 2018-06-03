@@ -168,17 +168,17 @@ void MainRom::save_modes(std::string suffix){
 	
 }
 
-void MainRom::load_modes(std::string suffix){
+void MainRom::load_modes(std::string suffix, std::string directory){
 	isnormalize = 3;
 	
 	if(isnormalize == 1){
-		snap_mean.load("snap_mean.bin"+suffix, arma::arma_binary);
-		snap_std.load("snap_std.bin"+suffix, arma::arma_binary);
+		snap_mean.load(directory + "snap_mean.bin"+suffix, arma::arma_binary);
+		snap_std.load(directory + "snap_std.bin"+suffix, arma::arma_binary);
 		
 	}
 	else if(isnormalize == 2 || isnormalize == 3){
-		snap_mean_v.load("snap_mean_v.bin"+suffix, arma::arma_binary);
-		snap_std_v.load("snap_std_v.bin"+suffix, arma::arma_binary);
+		snap_mean_v.load(directory + "snap_mean_v.bin"+suffix, arma::arma_binary);
+		snap_std_v.load(directory + "snap_std_v.bin"+suffix, arma::arma_binary);
 	}
 	// if(n_cols > 0){
 	// 	modes_spatial = load_arma_binary_partial("modes_spatial.bin"+suffix, n_cols);
@@ -245,8 +245,8 @@ void MainRom::calc_qdeim(int dim){
 	if(deim_mode == DEIM_MODE_VECTOR){
 		assert(pp.min() >= 0);
 		assert(pp.max() < 64000);
-		pp.save("deim_p.bin", arma::arma_binary);
-		pp.save("deim_p.ascii", arma::arma_ascii);
+		pp.save("residual_p.bin", arma::arma_binary);
+		pp.save("residual_p.ascii", arma::arma_ascii);
 
 	}
 	else if(deim_mode == DEIM_MODE_CELL){
@@ -258,8 +258,8 @@ void MainRom::calc_qdeim(int dim){
 				ppp(i*8 + j) = pp(i)*8 + j;
 			}
 		}
-		ppp.save("deim_p.bin", arma::arma_binary);
-		ppp.save("deim_p.ascii", arma::arma_ascii);
+		ppp.save("residual_p.bin", arma::arma_binary);
+		ppp.save("residual_p.ascii", arma::arma_ascii);
 	}
 }
 
@@ -294,8 +294,8 @@ void MainRom::calc_deim(int dim){
 	
 	//P.save("P.bin", arma::arma_binary);
 	//p.save("p_idx.bin", arma::arma_binary);
-	deim_p.save("deim_p.bin", arma::arma_binary);
-	deim_p.save("deim_p.ascii", arma::arma_ascii);
+	deim_p.save("residual_p.bin", arma::arma_binary);
+	deim_p.save("residual_p.ascii", arma::arma_ascii);
 	//deim_p = p;
 	//deim_P = P;
 	//arma::vec snap_t = snapshots.col(1500);
@@ -701,7 +701,7 @@ int GemsRom::get_deim_local_size(int ipartition_id){
 
 void GemsRom::get_deim_local_id_idx(int ipartition_id, int *ilocal_id, int *ivar){
 	arma::umat tmp_s;
-	tmp_s.load("deim_p_"+std::to_string(ipartition_id));
+	tmp_s.load(directory + "residual_p_"+std::to_string(ipartition_id));
 	int n_rows = tmp_s.n_rows;
 	assert(ilocal_id != nullptr);
 	assert(ivar != nullptr);
@@ -741,7 +741,7 @@ void GemsRom::calc_deim(int ipartition_id, double *r_s, double *deim_r){
 
 arma::mat GemsRom::load_snapshots(std::string suffix){
 	arma::mat snapshots;
-	std::string filename = "snapshots_solution.bin"+suffix;
+	std::string filename = directory + "snapshots_solution.bin" + suffix;
 	println("Reading file: " + filename);
 	snapshots.load(filename, arma::arma_binary);
 	return snapshots;
@@ -753,21 +753,22 @@ void GemsRom::initialize(int ipartition_id){
 	catch(std::bad_alloc &e){
 		std::cout<<e.what()<<std::endl;
 	}
+	directory = "RomFiles/";
 	//arma::mat snapshots = load_snapshots("_deim");
 	//m->set_snapshots(snapshots);
 	load_partition_info();
-	m->load_modes("_residual");
+	m->load_modes("_residual", directory);
 	
-	preload_tmp_idx.load("deim_p_"+std::to_string(ipartition_id), arma::arma_binary);
-	preload_PP.load("PP_p_"+std::to_string(ipartition_id), arma::arma_binary);
+	preload_tmp_idx.load(directory + "residual_p_"+std::to_string(ipartition_id), arma::arma_binary);
+	preload_PP.load(directory + "PP_p_"+std::to_string(ipartition_id), arma::arma_binary);
 }
 
 void GemsRom::load_partition_info(){
 	arma::Mat<int> shape;
-	shape.load("snapshots_shape.bin", arma::raw_binary);
+	shape.load(directory + "snapshots_shape.bin", arma::raw_binary);
 	//	arma::Col<int> buffer(shape[1]*2);
 	println(shape[1]);
-	buffer.load("partition.bin", arma::raw_binary);
+	buffer.load(directory + "partition.bin", arma::raw_binary);
 
 	//local_id(shape[1]);
 	//partition_id(shape[1]);

@@ -43,7 +43,7 @@ public:
 	
 	void save_modes(std::string suffix="");
 
-	void load_modes(std::string suffix="");
+	void load_modes(std::string suffix="", std::string directory="");
 	arma::mat get_var_modes(int ivar_idx);
 
 	void calc_svd();
@@ -77,8 +77,8 @@ class GemsRom{
 private:
 public:
 	MainRom *m;
-	int num_processor;
-
+	int num_processor=0;
+	std::string directory="";
 	arma::umat preload_tmp_idx;
 	arma::mat preload_PP;
 
