@@ -11,3 +11,12 @@
 [submodule "external/args"]
 	path = external/args
 	url = git@github.com:Taywee/args.git
+[submodule "external/spdlog"]
+	path = external/spdlog
+	url = git@github.com:gabime/spdlog.git
+[submodule "external/Eigen"]
+	path = external/Eigen
+	url = https://github.com/libigl/eigen
+[submodule "external/inih"]
+	path = external/inih
+	url = git@github.com:jtilly/inih.git
