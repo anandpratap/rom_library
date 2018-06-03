@@ -16,6 +16,7 @@ extern "C" {
 	void mainrom_save_modes(mainrom *mr, char* suffix="");
 	void mainrom_load_modes(mainrom *mr, char* suffix="");
 	void mainrom_calc_svd(mainrom *mr);
+	void mainrom_set_snapshots(mainrom *mr, int idim, int insamples, double *isnapshots);
 
 	
 	gemsrom* create_gemsrom(void);

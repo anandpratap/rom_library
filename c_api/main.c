@@ -15,6 +15,9 @@ void mainrom_calc_svd(mainrom *mr){
 	mr->calc_svd();
 };
 
+void mainrom_set_snapshots(mainrom *mr, int idim, int insamples, double *isnapshots){
+	mr->set_snapshots(idim, insamples, isnapshots);
+}
 
 gemsrom *create_gemsrom(void){
 	return new GemsRom();
