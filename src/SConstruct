@@ -1,5 +1,4 @@
 Import("env")
 SOURCES = ["main.cpp"]
 LIBS = ["armadillo"]
-env.StaticLibrary("#/lib/main_cxx", SOURCES, LIBS=LIBS)
 env.SharedLibrary("#/lib/main_cxx", SOURCES, LIBS=LIBS)

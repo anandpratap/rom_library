@@ -1,4 +1,4 @@
 Import("env")
 SOURCES = ["main_mod.f90"]
 LIBS = ["main_c"]
-env.StaticLibrary("#/lib/main_fortran", SOURCES, LIBS=LIBS)
+env.SharedLibrary("#/lib/main_fortran", SOURCES, LIBS=LIBS)
