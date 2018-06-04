@@ -76,10 +76,12 @@ class TecplotImporter(object):
         for fidx, time in enumerate(range(start, end+1, step)):
             print "Loading plts %i of %i"%(fidx+1, end+1-start) 
             output_data = self.read_data(get_filename(directory, time), residual)
+            data_array[fidx, :, :] = output_data[0][:,:]
             if residual:
-                    data_array_residual[fidx, :, :] = output_data[1][:,:]
-            else:
-                    data_array[fidx, :, :] = output_data[0][:,:]
+                data_array_residual[fidx, :, :] = output_data[1][:,:]
+            
+            
+            
             # figure()
             # plot(data["Eq_1_residual"])
             # plot(data_array[fidx,:,0])
@@ -99,9 +101,8 @@ class TecplotExporter(object):
     def __init__(self):
         pass
     
-    def save(self, nmodes, directory=os.getcwd(), residual=False):
-        template_filename = "template.plt"
-        dataset = tecplot.data.load_tecplot(template_filename, read_data_option=2)
+    def save(self, nmodes, directory=os.getcwd(), residual=False, template="template.plt"):
+        dataset = tecplot.data.load_tecplot(template, read_data_option=2)
         if not residual:
             modes = arma.load_mat(os.path.join(directory, "modes_spatial.bin"))
         else:
@@ -112,7 +113,6 @@ class TecplotExporter(object):
             dataset.add_variable(v, locations=tecplot.constant.ValueLocation.CellCentered)
 
         for i in range(nmodes):
-            print "Write mode %i"%i
             zone = dataset.zone(0)
             mode = modes[:,i]
             zone.solution_time = i
@@ -125,7 +125,8 @@ class TecplotExporter(object):
                 file_format = "spatial_mode%i.dat"
             else:
                 file_format = "spatial_mode_residual%i.dat"
-            tecplot.data.save_tecplot_ascii("spatial_mode%i.dat"%(i+1), variables=variables)
+            print "Write mode "+file_format%(i+1)
+            tecplot.data.save_tecplot_ascii(file_format%(i+1), variables=variables)
                 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Utility for ROM framework')
@@ -136,6 +137,7 @@ if __name__ == "__main__":
     
     parser.add_argument("--save-modes-plts", action="store_true", help="Save modes to tecplot format")
     parser.add_argument("--nmodes", type=int, help="Number of modes to save")
+    parser.add_argument("--template", type=str, help="path to plt template")
     
     args = parser.parse_args()
     if args.process_plts:
@@ -155,16 +157,18 @@ if __name__ == "__main__":
             arma.save_mat(data_array, "snapshots_solution.bin")
         else:
             data_array, data_array_residual = t.read_plts(start=start, end=end, step=1, residual=True, directory=args.data_directory)
-
+            
             nt, ncv, nvar = data_array.shape
             sizes = np.array([nt, ncv, nvar], dtype=np.int32)
             sizes.tofile("snapshots_shape.bin")
             
             data_array = np.reshape(data_array, [nt, ncv*nvar]).T
             arma.save_mat(data_array, "snapshots_solution.bin")
-
+            
             data_array_residual = np.reshape(data_array_residual, [nt, ncv*nvar]).T
             arma.save_mat(data_array_residual, "snapshots_solution.bin_residual")
     if args.save_modes_plts:
         t = TecplotExporter()
-        t.save(args.nmodes, args.data_directory, args.residual)
+        t.save(args.nmodes, args.data_directory, False, args.template)
+        if args.residual:
+            t.save(args.nmodes, args.data_directory, True, args.template)
