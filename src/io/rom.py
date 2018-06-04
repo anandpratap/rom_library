@@ -127,7 +127,50 @@ class TecplotExporter(object):
                 file_format = "spatial_mode_residual%i.dat"
             print "Write mode "+file_format%(i+1)
             tecplot.data.save_tecplot_ascii(file_format%(i+1), variables=variables)
-                
+
+    def save_stats(self, nmodes, directory=os.getcwd(), residual=False, template="template.plt"):
+        dataset = tecplot.data.load_tecplot(template, read_data_option=2)
+        if not residual:
+            mean = arma.load_mat(os.path.join(directory, "snap_mean_v.bin"))
+            std = arma.load_mat(os.path.join(directory, "snap_std_v.bin"))
+        else:
+            mean = arma.load_mat(os.path.join(directory, "snap_mean_v.bin_residual"))
+            std = arma.load_mat(os.path.join(directory, "snap_std_v.bin_residual"))
+            
+        modes_vars_list = ["P_pod_mode", "U_pod_mode", "V_pod_mode", "T_pod_mode",
+                               "Y_CH4_pod_mode", "Y_O2_pod_mode", "Y_H2O_pod_mode", "Y_CO2_pod_mode"]
+        for v in modes_vars_list:
+            dataset.add_variable(v, locations=tecplot.constant.ValueLocation.CellCentered)
+
+        if 1:
+            zone = dataset.zone(0)
+            zone.solution_time = 0
+            for idx, v in enumerate(modes_vars_list):
+                zone.values(v)[:] = mean[idx,0]*np.ones(len(zone.values(v)[:]))
+            vars_to_write = ["x", "y"]
+            vars_to_write.extend(modes_vars_list)
+            variables = [dataset.variable(v) for v in vars_to_write]
+            if not residual:
+                file_format = "mean.dat"
+            else:
+                file_format = "mean_residual.dat"
+            print "Write mode "+file_format
+            tecplot.data.save_tecplot_ascii(file_format, variables=variables)
+        if 1:
+            zone = dataset.zone(0)
+            zone.solution_time = 0
+            for idx, v in enumerate(modes_vars_list):
+                zone.values(v)[:] = std[idx,0]*np.ones(len(zone.values(v)[:]))
+            vars_to_write = ["x", "y"]
+            vars_to_write.extend(modes_vars_list)
+            variables = [dataset.variable(v) for v in vars_to_write]
+            if not residual:
+                file_format = "std.dat"
+            else:
+                file_format = "std_residual.dat"
+            print "Write mode "+file_format
+            tecplot.data.save_tecplot_ascii(file_format, variables=variables)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Utility for ROM framework')
     parser.add_argument('--iterations', nargs=2, type=int, help="Start and end (is included) iteration number for parsing and storing snapshots.")
@@ -170,5 +213,7 @@ if __name__ == "__main__":
     if args.save_modes_plts:
         t = TecplotExporter()
         t.save(args.nmodes, args.data_directory, False, args.template)
+        t.save_stats(args.nmodes, args.data_directory, False, args.template)
         if args.residual:
             t.save(args.nmodes, args.data_directory, True, args.template)
+            t.save_stats(args.nmodes, args.data_directory, True, args.template)
