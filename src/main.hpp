@@ -34,7 +34,7 @@ public:
 	arma::mat modes_spatial;
 	arma::mat modes_temporal;
 	arma::vec singular_values;
-	int isnormalize = 3;
+	int isnormalize = 4;
 	int deim_mode = DEIM_MODE_VECTOR;
 	arma::Col<arma::uword> deim_p;
 

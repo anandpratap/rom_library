@@ -107,10 +107,14 @@ void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix){
 			assert(k == ncv*nt);
 			snap_mean_v(i) = arma::mean(Var);
 			snap_std_v(i) = arma::abs(Var).max();
+
+			if(i>3){
+				snap_std_v(i) = 1.0;
+			}
+
 		}
 		//snap_mean_v(2) = snap_mean_v(1);
 		snap_std_v(2) = snap_std_v(1);
-
 		for(arma::uword j=0; j<snapshots.n_cols; j++){
 			for(arma::uword i=0; i<snapshots.n_rows; i++){
 				snapshots(i, j) = (snapshots(i,j) - snap_mean_v(i%8))/snap_std_v(i%8);
@@ -119,8 +123,44 @@ void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix){
 		
 		snap_mean_v.save("snap_mean_v.bin"+suffix, arma::arma_binary);
 		snap_std_v.save("snap_std_v.bin"+suffix, arma::arma_binary);
-	
+		
 	}
+	else if(isnormalize == 4){
+		snap_mean = arma::mean(snapshots, 1);
+		snap_std_v = arma::vec(8);
+		int ncv = snapshots.n_rows/8;
+		int nt = snapshots.n_cols;
+		arma::vec Var(ncv*nt);
+		for(int i=0; i<8; i++){
+			int k=0;
+			for(int icv=0; icv<ncv; icv++){
+				for(int t=0; t<nt; t++){
+					Var(k) = snapshots(icv*8 + i, t);
+					k+=1;
+				}
+			}
+			assert(k == ncv*nt);
+			snap_std_v(i) = arma::abs(Var).max();
+
+			if(i>3){
+				snap_std_v(i) = 1.0;
+			}
+
+			
+		}
+		//snap_mean_v(2) = snap_mean_v(1);
+		snap_std_v(2) = snap_std_v(1);
+
+		for(arma::uword j=0; j<snapshots.n_cols; j++){
+			for(arma::uword i=0; i<snapshots.n_rows; i++){
+				snapshots(i, j) = (snapshots(i,j) - snap_mean(i))/snap_std_v(i%8);
+			}
+		}
+		snap_mean.save("snap_mean.bin"+suffix, arma::arma_binary);
+		snap_std_v.save("snap_std_v.bin"+suffix, arma::arma_binary);
+
+	}
+
 
 	//snapshots = snapshots.cols(0, 100);
 	//print_mat_shape(this->snapshots, "Snapshots: ");
@@ -169,7 +209,7 @@ void MainRom::save_modes(std::string suffix){
 }
 
 void MainRom::load_modes(std::string suffix, std::string directory){
-	isnormalize = 3;
+	//isnormalize = 3;
 	
 	if(isnormalize == 1){
 		snap_mean.load(directory + "snap_mean.bin"+suffix, arma::arma_binary);
@@ -180,6 +220,11 @@ void MainRom::load_modes(std::string suffix, std::string directory){
 		snap_mean_v.load(directory + "snap_mean_v.bin"+suffix, arma::arma_binary);
 		snap_std_v.load(directory + "snap_std_v.bin"+suffix, arma::arma_binary);
 	}
+	else if(isnormalize == 4){
+		snap_mean.load(directory+"snap_mean.bin"+suffix, arma::arma_binary);
+		snap_std_v.load(directory+"snap_std_v.bin"+suffix, arma::arma_binary);
+	}
+	
 	// if(n_cols > 0){
 	// 	modes_spatial = load_arma_binary_partial("modes_spatial.bin"+suffix, n_cols);
 	// }
@@ -531,6 +576,12 @@ arma::vec MainRom::renormalize(arma::vec x){
 			y(k) = x(k)*snap_std_v(k%8) + snap_mean_v(k%8);
 		}
 	}
+	else if(isnormalize==4){
+		for(arma::uword k=0; k<x.size(); k++){
+			y(k) = x(k)*snap_std_v(k%8) + snap_mean(k);
+		}
+	}
+
 	else{
 		for(arma::uword k=0; k<x.size(); k++){
 			y(k) = x(k);
@@ -551,6 +602,12 @@ arma::vec MainRom::renormalize(arma::vec x, arma::uvec var_idx){
 			y(k) = x(k)*snap_std_v(var_idx(k)%8) + snap_mean_v(var_idx(k)%8);
 		}
 	}
+	else if(isnormalize==4){
+		for(arma::uword k=0; k<x.size(); k++){
+			y(k) = x(k)*snap_std_v(var_idx(k)%8) + snap_mean(var_idx(k));
+		}
+	}
+
 	else{
 		for(arma::uword k=0; k<x.size(); k++){
 			y(k) = x(k);
@@ -572,6 +629,12 @@ void MainRom::renormalize(int isize, double *x, double *y){
 			y[k] = x[k]*snap_std_v(k%8) + snap_mean_v(k%8);
 		}
 	}
+	else if(isnormalize==4){
+		for(arma::uword k=0; k<isize; k++){
+			y[k] = x[k]*snap_std_v(k%8) + snap_mean(k);
+		}
+	}
+
 	else{
 		for(arma::uword k=0; k<isize; k++){
 			y[k] = x[k];
@@ -592,6 +655,12 @@ arma::vec MainRom::normalize(arma::vec x){
 			y(k) = (x(k) - snap_mean_v(k%8))/snap_std_v(k%8);
 		}
 	}
+	else if(isnormalize==4){
+		for(arma::uword k=0; k<x.size(); k++){
+			y(k) = (x(k) - snap_mean(k))/snap_std_v(k%8);
+		}
+	}
+
 	else{
 		for(arma::uword k=0; k<x.size(); k++){
 			y(k) = x(k);
@@ -613,6 +682,12 @@ arma::vec MainRom::normalize(arma::vec x, arma::uvec var_idx){
 			y(k) = (x(k) - snap_mean_v(var_idx(k)%8))/snap_std_v(var_idx(k)%8);
 		}
 	}
+	else if(isnormalize==4){
+		for(arma::uword k=0; k<x.size(); k++){
+			y(k) = (x(k) - snap_mean(var_idx(k)))/snap_std_v(var_idx(k)%8);
+		}
+	}
+
 	else{
 		for(arma::uword k=0; k<x.size(); k++){
 			y(k) = x(k);
@@ -721,7 +796,13 @@ void GemsRom::calc_deim(int ipartition_id, double *r_s, double *deim_r){
 	//m->snap_mean_v.print();
 	for(int i=0; i<r_s_v.size(); i++){
 		int ivar = preload_tmp_idx(i, 2);
-		mean = m->snap_mean_v(ivar);
+		if(m->isnormalize != 4){
+			mean = m->snap_mean_v(ivar);
+		}
+		else{
+			int gid = preload_tmp_idx(i, 0);
+			mean = m->snap_mean(gid);
+		}
 		stddev = m->snap_std_v(ivar);
 		r_s_v(i) = (r_s_v(i) - mean)/stddev;
 	}
