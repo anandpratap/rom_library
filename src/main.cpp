@@ -3,6 +3,8 @@
 #include <armadillo>
 #include <cassert>
 #include "main.hpp"
+#include "mkl_lapacke.h"
+#define USE_LAPACK
 
 arma::mat load_arma_binary_partial(std::string filename, int n_cols){
 	std::ifstream f;
@@ -36,14 +38,28 @@ arma::mat eigen_matrix_to_arma(MatrixXd me){
 	return m;
 }
 
-void MainRom::set_snapshots(int idim, int insamples, double *isnapshots){
+void MainRom::set_snapshots(int idim, int insamples, double *isnapshots, int normalization){
 	assert(isnapshots != nullptr);
 	arma::mat tmp_snapshots = arma::mat(isnapshots, idim, insamples, false, true);
-	set_snapshots(tmp_snapshots, "");
+	set_snapshots(tmp_snapshots, "", normalization);
+}
+
+arma::Col<int> calc_qr_lapack(arma::mat A){
+	int m = A.n_rows;
+	int n = A.n_cols;
+	int lda = m;
+	arma::Col<int> jpvt = arma::zeros<arma::Col<int>>(n);
+	arma::Col<double> tau = arma::zeros<arma::Col<double>>(m);
+	LAPACKE_dgeqpf(LAPACK_COL_MAJOR, m, n, A.memptr(), lda, jpvt.memptr(), tau.memptr());
+	// this outputs indexing starting from 1
+	jpvt = jpvt - 1;
+	//jpvt.print();
+	return jpvt;
 }
 
 
-void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix){
+void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix, int normalization){
+	isnormalize = normalization;
 	snapshots = isnapshots;
 	if(isnormalize==1){
 		snap_mean = arma::mean(snapshots, 1);
@@ -59,16 +75,16 @@ void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix){
 		snap_std.save("snap_std.bin"+suffix, arma::arma_binary);
 	}
 	else if(isnormalize == 2){
-		snap_mean_v = arma::vec(8);
-		snap_std_v = arma::vec(8);
-		int ncv = snapshots.n_rows/8;
+		snap_mean_v = arma::vec(NSPECIES);
+		snap_std_v = arma::vec(NSPECIES);
+		int ncv = snapshots.n_rows/NSPECIES;
 		int nt = snapshots.n_cols;
 		arma::vec Var(ncv*nt);
-		for(int i=0; i<8; i++){
+		for(int i=0; i<NSPECIES; i++){
 			int k=0;
 			for(int icv=0; icv<ncv; icv++){
 				for(int t=0; t<nt; t++){
-					Var(k) = snapshots(icv*8 + i, t);
+					Var(k) = snapshots(icv*NSPECIES + i, t);
 					k+=1;
 				}
 			}
@@ -81,7 +97,7 @@ void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix){
 
 		for(arma::uword j=0; j<snapshots.n_cols; j++){
 			for(arma::uword i=0; i<snapshots.n_rows; i++){
-				snapshots(i, j) = (snapshots(i,j) - snap_mean_v(i%8))/snap_std_v(i%8);
+				snapshots(i, j) = (snapshots(i,j) - snap_mean_v(i%NSPECIES))/snap_std_v(i%NSPECIES);
 			}
 		}
 		
@@ -91,16 +107,16 @@ void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix){
 	}
 	
 	else if(isnormalize == 3){
-		snap_mean_v = arma::vec(8);
-		snap_std_v = arma::vec(8);
-		int ncv = snapshots.n_rows/8;
+		snap_mean_v = arma::vec(NSPECIES);
+		snap_std_v = arma::vec(NSPECIES);
+		int ncv = snapshots.n_rows/NSPECIES;
 		int nt = snapshots.n_cols;
 		arma::vec Var(ncv*nt);
-		for(int i=0; i<8; i++){
+		for(int i=0; i<NSPECIES; i++){
 			int k=0;
 			for(int icv=0; icv<ncv; icv++){
 				for(int t=0; t<nt; t++){
-					Var(k) = snapshots(icv*8 + i, t);
+					Var(k) = snapshots(icv*NSPECIES + i, t);
 					k+=1;
 				}
 			}
@@ -117,7 +133,7 @@ void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix){
 		snap_std_v(2) = snap_std_v(1);
 		for(arma::uword j=0; j<snapshots.n_cols; j++){
 			for(arma::uword i=0; i<snapshots.n_rows; i++){
-				snapshots(i, j) = (snapshots(i,j) - snap_mean_v(i%8))/snap_std_v(i%8);
+				snapshots(i, j) = (snapshots(i,j) - snap_mean_v(i%NSPECIES))/snap_std_v(i%NSPECIES);
 			}
 		}
 		
@@ -125,40 +141,53 @@ void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix){
 		snap_std_v.save("snap_std_v.bin"+suffix, arma::arma_binary);
 		
 	}
-	else if(isnormalize == 4){
+	else if(isnormalize == 4 || isnormalize == 5){
 		snap_mean = arma::mean(snapshots, 1);
-		snap_std_v = arma::vec(8);
-		int ncv = snapshots.n_rows/8;
+		snap_std_v = arma::vec(NSPECIES);
+		int ncv = snapshots.n_rows/NSPECIES;
 		int nt = snapshots.n_cols;
 		arma::vec Var(ncv*nt);
-		for(int i=0; i<8; i++){
+		for(int i=0; i<NSPECIES; i++){
 			int k=0;
 			for(int icv=0; icv<ncv; icv++){
 				for(int t=0; t<nt; t++){
-					Var(k) = snapshots(icv*8 + i, t);
+					Var(k) = snapshots(icv*NSPECIES + i, t) - snap_mean(icv*NSPECIES + i);
 					k+=1;
 				}
 			}
 			assert(k == ncv*nt);
 			snap_std_v(i) = arma::abs(Var).max();
-
-			if(i>3){
+			if(i>=4){
 				snap_std_v(i) = 1.0;
 			}
-
 			
 		}
 		//snap_mean_v(2) = snap_mean_v(1);
-		snap_std_v(2) = snap_std_v(1);
-
+		double umag = std::sqrt(snap_std_v(1)* snap_std_v(1) +  snap_std_v(2)* snap_std_v(2));
+		snap_std_v(1) = umag;
+		snap_std_v(2) = umag;
+		
+		if(isnormalize == 5){
+			snap_std_v.load("snap_std_v.bin", arma::arma_binary);
+		}
+		
 		for(arma::uword j=0; j<snapshots.n_cols; j++){
 			for(arma::uword i=0; i<snapshots.n_rows; i++){
-				snapshots(i, j) = (snapshots(i,j) - snap_mean(i))/snap_std_v(i%8);
+				snapshots(i, j) = (snapshots(i,j) - snap_mean(i))/snap_std_v(i%NSPECIES);
 			}
 		}
 		snap_mean.save("snap_mean.bin"+suffix, arma::arma_binary);
-		snap_std_v.save("snap_std_v.bin"+suffix, arma::arma_binary);
-
+		if(isnormalize == 5){
+			snap_std_v.save("snap_std_v.bin"+suffix, arma::arma_binary);
+			snap_std_v.save("snap_std_v.ascii"+suffix, arma::arma_ascii);
+		}
+		else{
+			snap_std_v.save("snap_std_v.bin"+suffix, arma::arma_binary);
+			snap_std_v.save("snap_std_v.ascii"+suffix, arma::arma_ascii);
+		}
+	}
+	else{
+		throw std::invalid_argument("isnormalize not valid.");
 	}
 
 
@@ -220,9 +249,16 @@ void MainRom::load_modes(std::string suffix, std::string directory){
 		snap_mean_v.load(directory + "snap_mean_v.bin"+suffix, arma::arma_binary);
 		snap_std_v.load(directory + "snap_std_v.bin"+suffix, arma::arma_binary);
 	}
-	else if(isnormalize == 4){
+	else if(isnormalize == 4 || isnormalize == 5){
 		snap_mean.load(directory+"snap_mean.bin"+suffix, arma::arma_binary);
+		//std::cout<<"Loading "<<"snap_std_v.bin"+suffix<<std::endl;
 		snap_std_v.load(directory+"snap_std_v.bin"+suffix, arma::arma_binary);
+		//std::cout<<"tempfix Loading "<<"snap_std_v.bin"<<std::endl;
+
+		//* tempfix
+		//* for now using solution std for normalization
+		//snap_std_v.load(directory+"snap_std_v.bin", arma::arma_binary);
+		
 	}
 	
 	// if(n_cols > 0){
@@ -236,7 +272,24 @@ void MainRom::load_modes(std::string suffix, std::string directory){
 	//modes_temporal.load("modes_temporal.bin"+suffix, arma::arma_binary);
 	//singular_values.load("singular_values.bin"+suffix, arma::arma_binary);
 }
+
+void MainRom::load_modes_full(std::string suffix, std::string directory){
+	//isnormalize = 3;
 	
+	load_modes(suffix, directory);
+	// if(n_cols > 0){
+	// 	modes_spatial = load_arma_binary_partial("modes_spatial.bin"+suffix, n_cols);
+	// }
+	// else{
+	modes_spatial.load(directory + "modes_spatial.bin"+suffix, arma::arma_binary);
+	// }
+	//	modes_spatial.save("modes_spatial_raw.bin"+suffix, arma::raw_binary);
+	
+	//modes_temporal.load("modes_temporal.bin"+suffix, arma::arma_binary);
+	//singular_values.load("singular_values.bin"+suffix, arma::arma_binary);
+}
+
+
 void MainRom::calc_svd(){
 	svd_econ(modes_spatial, singular_values, modes_temporal, this->snapshots);
 	print_mat_shape(modes_spatial, "modes_spatial: ");
@@ -254,7 +307,7 @@ void MainRom::reconstruct(int n_mode){
 }
 
 arma::mat MainRom::get_var_modes(int ivar_idx){
-	arma::uvec var_indices = arma::regspace<arma::uvec>(ivar_idx, 8, 64000-1);
+	arma::uvec var_indices = arma::regspace<arma::uvec>(ivar_idx, NSPECIES, NDOF-1);
 	var_indices.print();
 	return modes_spatial.rows(var_indices);
 }
@@ -268,8 +321,15 @@ void MainRom::calc_qdeim(int dim){
 		arma::mat tmp_modes = get_var_modes(3);
 		sub_basis = tmp_modes(arma::span::all, arma::span(0, dim-1));
 	}
-	MatrixXd eigen_sub_basis = arma_matrix_to_eigen(sub_basis);
+
+	arma::mat sub_basis_t = arma::trans(sub_basis);
+
 	std::cout<<" Calculating QR"<<std::endl;
+
+#if defined(USE_LAPACK)
+	arma::Col<int> p_ind = calc_qr_lapack(sub_basis_t);
+#else
+	MatrixXd eigen_sub_basis = arma_matrix_to_eigen(sub_basis);
 	// do qr
 	Eigen::ColPivHouseholderQR<MatrixXd> qr(eigen_sub_basis.transpose());
 	//qr.compute(eigen_sub_basis.transpose());
@@ -280,6 +340,8 @@ void MainRom::calc_qdeim(int dim){
 	auto p_ind = P.indices();
 	std::cout<<P.rows()<<" "<<P.cols();
 	std::cout<<p_ind.rows()<<" "<<p_ind.cols();
+#endif
+	
 	arma::uvec pp(dim);
 	for(int i=0; i<dim; i++){
 		pp(i) = p_ind(i);
@@ -289,7 +351,7 @@ void MainRom::calc_qdeim(int dim){
 
 	if(deim_mode == DEIM_MODE_VECTOR){
 		assert(pp.min() >= 0);
-		assert(pp.max() < 64000);
+		assert(pp.max() < NDOF);
 		pp.save("residual_p.bin", arma::arma_binary);
 		pp.save("residual_p.ascii", arma::arma_ascii);
 
@@ -297,10 +359,10 @@ void MainRom::calc_qdeim(int dim){
 	else if(deim_mode == DEIM_MODE_CELL){
 		assert(pp.min() >= 0);
 		assert(pp.max() < 8000);
-		arma::uvec ppp = arma::uvec(pp.size()*8);
+		arma::uvec ppp = arma::uvec(pp.size()*NSPECIES);
 		for(int i=0; i<pp.size(); i++){
-			for(int j=0; j<8; j++){
-				ppp(i*8 + j) = pp(i)*8 + j;
+			for(int j=0; j<NSPECIES; j++){
+				ppp(i*NSPECIES + j) = pp(i)*NSPECIES + j;
 			}
 		}
 		ppp.save("residual_p.bin", arma::arma_binary);
@@ -573,12 +635,12 @@ arma::vec MainRom::renormalize(arma::vec x){
 	}
 	else if(isnormalize==2 || isnormalize==3){
 		for(arma::uword k=0; k<x.size(); k++){
-			y(k) = x(k)*snap_std_v(k%8) + snap_mean_v(k%8);
+			y(k) = x(k)*snap_std_v(k%NSPECIES) + snap_mean_v(k%NSPECIES);
 		}
 	}
-	else if(isnormalize==4){
+	else if(isnormalize==4 || isnormalize == 5){
 		for(arma::uword k=0; k<x.size(); k++){
-			y(k) = x(k)*snap_std_v(k%8) + snap_mean(k);
+			y(k) = x(k)*snap_std_v(k%NSPECIES) + snap_mean(k);
 		}
 	}
 
@@ -599,12 +661,12 @@ arma::vec MainRom::renormalize(arma::vec x, arma::uvec var_idx){
 	}
 	else if(isnormalize==2 || isnormalize ==3){
 		for(arma::uword k=0; k<x.size(); k++){
-			y(k) = x(k)*snap_std_v(var_idx(k)%8) + snap_mean_v(var_idx(k)%8);
+			y(k) = x(k)*snap_std_v(var_idx(k)%NSPECIES) + snap_mean_v(var_idx(k)%NSPECIES);
 		}
 	}
-	else if(isnormalize==4){
+	else if(isnormalize==4 || isnormalize == 5){
 		for(arma::uword k=0; k<x.size(); k++){
-			y(k) = x(k)*snap_std_v(var_idx(k)%8) + snap_mean(var_idx(k));
+			y(k) = x(k)*snap_std_v(var_idx(k)%NSPECIES) + snap_mean(var_idx(k));
 		}
 	}
 
@@ -626,12 +688,13 @@ void MainRom::renormalize(int isize, double *x, double *y){
 	}
 	else if(isnormalize==2 || isnormalize==3){
 		for(arma::uword k=0; k<isize; k++){
-			y[k] = x[k]*snap_std_v(k%8) + snap_mean_v(k%8);
+			y[k] = x[k]*snap_std_v(k%NSPECIES) + snap_mean_v(k%NSPECIES);
 		}
 	}
-	else if(isnormalize==4){
+	else if(isnormalize==4  || isnormalize == 5){
+		std::cout<<"calling renormalize"<<std::endl;
 		for(arma::uword k=0; k<isize; k++){
-			y[k] = x[k]*snap_std_v(k%8) + snap_mean(k);
+			y[k] = x[k]*snap_std_v(k%NSPECIES);// +  snap_mean(k);
 		}
 	}
 
@@ -652,12 +715,12 @@ arma::vec MainRom::normalize(arma::vec x){
 	}
 	else if(isnormalize==2 || isnormalize==3){
 		for(arma::uword k=0; k<x.size(); k++){
-			y(k) = (x(k) - snap_mean_v(k%8))/snap_std_v(k%8);
+			y(k) = (x(k) - snap_mean_v(k%NSPECIES))/snap_std_v(k%NSPECIES);
 		}
 	}
-	else if(isnormalize==4){
+	else if(isnormalize==4  || isnormalize == 5){
 		for(arma::uword k=0; k<x.size(); k++){
-			y(k) = (x(k) - snap_mean(k))/snap_std_v(k%8);
+			y(k) = (x(k) - snap_mean(k))/snap_std_v(k%NSPECIES);
 		}
 	}
 
@@ -679,12 +742,12 @@ arma::vec MainRom::normalize(arma::vec x, arma::uvec var_idx){
 	}
 	else if(isnormalize==2 || isnormalize==3){
 		for(arma::uword k=0; k<x.size(); k++){
-			y(k) = (x(k) - snap_mean_v(var_idx(k)%8))/snap_std_v(var_idx(k)%8);
+			y(k) = (x(k) - snap_mean_v(var_idx(k)%NSPECIES))/snap_std_v(var_idx(k)%NSPECIES);
 		}
 	}
-	else if(isnormalize==4){
+	else if(isnormalize==4  || isnormalize == 5){
 		for(arma::uword k=0; k<x.size(); k++){
-			y(k) = (x(k) - snap_mean(var_idx(k)))/snap_std_v(var_idx(k)%8);
+			y(k) = (x(k) - snap_mean(var_idx(k)))/snap_std_v(var_idx(k)%NSPECIES);
 		}
 	}
 
@@ -784,32 +847,44 @@ void GemsRom::get_deim_local_id_idx(int ipartition_id, int *ilocal_id, int *ivar
 		ilocal_id[i] = tmp_s(i, 4);
 		ivar[i] = tmp_s(i, 2);
 	}
+	std::cout<<"get_deim_local_id_idx"<<std::endl;
 }
 
 void GemsRom::calc_deim(int ipartition_id, double *r_s, double *deim_r){
 	assert(r_s != nullptr);
 	assert(deim_r != nullptr);
 	arma::vec r_s_v = arma::vec(r_s, get_deim_local_size(ipartition_id), false, true);
-	double mean, stddev;
+	double mean = 0.0;
+	double stddev = 1.0;
 	//	arma::umat tmp_s;
 	//tmp_s.load("deim_p_"+std::to_string(ipartition_id));
 	//m->snap_mean_v.print();
+	//std::cout<<"HERE before "<<deim_r_v.size()<<" "<<r_s_v.size()<<std::endl;	
 	for(int i=0; i<r_s_v.size(); i++){
 		int ivar = preload_tmp_idx(i, 2);
-		if(m->isnormalize != 4){
-			mean = m->snap_mean_v(ivar);
+		if(m->isnormalize < 4){
+			//mean = m->snap_mean_v(ivar);
 		}
 		else{
+			std::cout<<"calc_deim"<<std::endl;
+			if(i%NSPECIES==0){
+				std::cout<<r_s_v(i)<<std::endl;
+			}
 			int gid = preload_tmp_idx(i, 0);
-			mean = m->snap_mean(gid);
+			//mean = m->snap_mean(gid);
 		}
 		stddev = m->snap_std_v(ivar);
 		r_s_v(i) = (r_s_v(i) - mean)/stddev;
 	}
+
+
 	arma::vec deim_r_v = calc_deim(ipartition_id, r_s_v);
-	for(int i=0; i<64000; i++){
+	
+	for(int i=0; i<NDOF; i++){
 		deim_r[i] = deim_r_v(i);
 	}
+
+	//std::cout<<"HERE after "<<deim_r_v.size()<<" "<<r_s_v.size()<<std::endl;
 	// this is a temporary fix to avoid memory leak, ideally the object
 	// should delete itself
 	try{
@@ -834,42 +909,24 @@ void GemsRom::initialize(int ipartition_id){
 	catch(std::bad_alloc &e){
 		std::cout<<e.what()<<std::endl;
 	}
+	m->isnormalize = 4;
 	directory = "RomFiles/";
 	//arma::mat snapshots = load_snapshots("_deim");
 	//m->set_snapshots(snapshots);
-	load_partition_info();
+	int num_processor = load_partition_info();
 	m->load_modes("_residual", directory);
 	
 	preload_tmp_idx.load(directory + "residual_p_"+std::to_string(ipartition_id), arma::arma_binary);
 	preload_PP.load(directory + "PP_p_"+std::to_string(ipartition_id), arma::arma_binary);
 }
 
-void GemsRom::load_partition_info(){
-	arma::Mat<int> shape;
-	shape.load(directory + "snapshots_shape.bin", arma::raw_binary);
-	//	arma::Col<int> buffer(shape[1]*2);
-	println(shape[1]);
-	buffer.load(directory + "partition.bin", arma::raw_binary);
-
-	//local_id(shape[1]);
-	//partition_id(shape[1]);
-
-	local_id = buffer.subvec(0, shape[1]-1);
-	partition_id = buffer.subvec(shape[1], shape[1]*2-1);
-
-
-	// for(int i=0; i<local_id.size(); i++){
-	// 	if(i>=4000){
-	// 		partition_id(i) = 1;
-	// 		local_id(i) = i-4000;
-	// 	}
-	// 	else{
-	// 		partition_id(i) = 0;
-	// 		local_id(i) = i;
-	// 	}
-	// }
+int GemsRom::load_partition_info(){
+	buffer.load(directory + "partition.bin", arma::arma_binary);
+	local_id = buffer.col(0);
+	partition_id = buffer.col(1);
 	num_processor = arma::max(partition_id) + 1; 
 	println("Number of processors = "); println(num_processor);
+	return num_processor;
 }
 
 int GemsRom::get_local_id(int ipartition_id, int iglobal_id){
@@ -896,11 +953,11 @@ int GemsRom::get_global_id(int ipartition_id, int ilocal_id){
 }
 
 arma::uvec GemsRom::get_index(int ipartition_id, arma::uvec idx){
-	arma::uvec var_idx(8*idx.size());
+	arma::uvec var_idx(NSPECIES*idx.size());
 	for(int i=0; i<idx.size(); i++){
 		//		int gid = get_global_id(ipartition_id, i);
-		for(int k=0; k<8; k++){
-			var_idx(i*8 + k) = idx(i)*8 + k;
+		for(int k=0; k<NSPECIES; k++){
+			var_idx(i*NSPECIES + k) = idx(i)*NSPECIES + k;
 		}
 	}
 	return var_idx;
@@ -908,7 +965,7 @@ arma::uvec GemsRom::get_index(int ipartition_id, arma::uvec idx){
 
 arma::vec GemsRom::get_uhat(int ipartition_id, arma::vec q, int n_mode){
 	arma::uvec idx = arma::find(partition_id == ipartition_id);
-	assert(q.size() == 8*idx.size());
+	assert(q.size() == NSPECIES*idx.size());
 	arma::uvec var_idx = get_index(ipartition_id, idx);
 	arma::vec uhat = m->projection_on_basis(q, n_mode, var_idx);
 	return uhat;
@@ -919,7 +976,7 @@ arma::vec GemsRom::get_u(int ipartition_id, arma::vec qhat, int n_mode){
 	arma::uvec idx = arma::find(partition_id == ipartition_id);
 	arma::uvec var_idx = get_index(ipartition_id, idx);
 	arma::vec u = m->projection_from_basis(qhat, n_mode, var_idx);
-	assert(u.size() == idx.size()*8);
+	assert(u.size() == idx.size()*NSPECIES);
 	return u;
 }
 

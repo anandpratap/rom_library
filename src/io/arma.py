@@ -1,6 +1,7 @@
 import numpy as np
 
 header_map = {}
+header_map["ARMA_MAT_BIN_IS004"] = "<i4"
 header_map["ARMA_MAT_BIN_FN008"] = "<f8"
 header_map["ARMA_MAT_BIN_FN004"] = "<f4"
 

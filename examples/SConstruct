@@ -1,28 +1,27 @@
 Import("env")
-env['STATIC_AND_SHARED_OBJECTS_ARE_THE_SAME']=1
 cenv = env.Clone()
 LIBS = ["main_cxx", "armadillo"]
 cenv["LINK"] = env["CXX"]
-SOURCES = ["main.cpp"]
-cenv.Program("main", SOURCES, LIBS=LIBS)
+# python SOURCES = ["main.cpp"]
+# python cenv.Program("main", SOURCES, LIBS=LIBS)
 
-SOURCES = ["main_gems.cpp"]
-cenv.Program("main_gems", SOURCES, LIBS=LIBS)
+# python SOURCES = ["main_gems.cpp"]
+# python cenv.Program("main_gems", SOURCES, LIBS=LIBS)
 
-SOURCES = ["test.cpp"]
-cenv.Program("testcxx", SOURCES, LIBS=LIBS)
-
+# python SOURCES = ["test.cpp"]
+# python cenv.Program("testcxx", SOURCES, LIBS=LIBS)
+#cenv.Append(CXXFLAGS=["-DENABLE_CXXOPTS"])
 SOURCES = ["generate_modes.cpp"]
 cenv.Program("generate_modes", SOURCES, LIBS=LIBS)
 
-LIBS = ["main_c", "main_cxx", "armadillo"]
-SOURCES = ["test_deim_cxx.cpp"]
-cenv.Program("test_deim_cxx", SOURCES, LIBS=LIBS)
+#LIBS = ["main_c", "main_cxx", "armadillo"]
+#SOURCES = ["test_deim_cxx.cpp"]
+#cenv.Program("test_deim_cxx", SOURCES, LIBS=LIBS)
 
 
 LIBS = ["armadillo", "lapack", "blas"]
 LIBS.append("rom")
-env["LINK"] = env["F90"]
+#env["LINK"] = env["F90"]
 
 #LIBS.append("main_fortran")
 if GetOption("intel_mpi") or GetOption("intel"):
