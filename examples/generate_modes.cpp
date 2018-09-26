@@ -39,6 +39,7 @@ int main(int argc, char **argv){
 		auto solution = new GemsRom();
 		//solution->load_partition_info();
 		solution->m = new MainRom();
+		solution->m->read_config_file("");
 		auto snapshots = solution->load_snapshots("");
 		solution->m->set_snapshots(snapshots, "", normalization);
 		//delete snapshots.memptr();
@@ -51,6 +52,7 @@ int main(int argc, char **argv){
 		auto solution = new GemsRom();
 		int num_processor = solution->load_partition_info();
 		solution->m = new MainRom();
+		solution->m->read_config_file("");
 		auto snapshots = solution->load_snapshots("_residual");
 		solution->m->set_snapshots(snapshots, "_residual", 5);
 		solution->m->calc_svd();
@@ -64,6 +66,7 @@ int main(int argc, char **argv){
 		auto solution = new GemsRom();
 			solution->load_partition_info();
 			solution->m = new MainRom();
+			solution->m->read_config_file("");
 			solution->m->isnormalize = 4;
 			int ndim = n_deim_samples;
 			if(use_solution_modes){
@@ -79,8 +82,8 @@ int main(int argc, char **argv){
 			ndim = deim_p.size();
 			arma::Mat<arma::uword> tmp_mat(ndim, 6);
 			for(int i=0; i<ndim; i++){
-				int icv = deim_p(i)/NSPECIES;
-				int ivar = deim_p(i)%NSPECIES;
+				int icv = deim_p(i)/solution->m->nspecies;
+				int ivar = deim_p(i)%solution->m->nspecies;
 				int pid = solution->get_partition_id(icv);
 				int lid = solution->get_local_id(pid, icv);
 				
@@ -100,7 +103,7 @@ int main(int argc, char **argv){
 
 			// for(int i=0; i<usub.n_rows; i++){
 			// 	for(int j=0; j<usub.n_cols; j++){
-			// 		usub(i,j) = usub(i, j)*solution->m->snap_std_v(i%NSPECIES);
+			// 		usub(i,j) = usub(i, j)*solution->m->snap_std_v(i%m->nspecies);
 			// 	}
 			// }
 			arma::mat PP;

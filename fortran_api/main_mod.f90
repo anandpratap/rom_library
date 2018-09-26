@@ -95,12 +95,12 @@ contains ! Implementation of the functions. We just wrap the C function here.
       call gemsrom_get_deim_id_c(this%ptr, partition_id, isize, ilocal_id, ivar)
     end subroutine gemsrom_get_deim_id
     
-    subroutine gemsrom_get_deim(this, partition_id, isize, r_s, deim_r)
+    subroutine gemsrom_get_deim(this, partition_id, isize, ndof, r_s, deim_r)
       implicit none
       class(gemsrom), intent(in) :: this
-      integer :: partition_id, isize
-      double precision :: r_s(:), deim_r(64000)
-      call gemsrom_get_deim_c(this%ptr, partition_id, isize, r_s, deim_r)
+      integer :: partition_id, isize, ndof
+      double precision :: r_s(:), deim_r(ndof)
+      call gemsrom_get_deim_c(this%ptr, partition_id, isize, ndof, r_s, deim_r)
     end subroutine gemsrom_get_deim
 
     subroutine gemsrom_renormalize(this, isize, x, y)

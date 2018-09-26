@@ -5,7 +5,18 @@
 #include "main.hpp"
 #include "mkl_lapacke.h"
 #define USE_LAPACK
-
+void MainRom::read_config_file(std::string directory){
+	std::fstream config_file(directory + "rom.config", std::ios_base::in);
+	config_file >> ndimension;
+	config_file >> ncv;
+	config_file >> nspecies;
+	config_file.close();
+	ndof = ncv*nspecies;
+	std::cout<<ndimension<<std::endl;
+	std::cout<<ncv<<std::endl;
+	std::cout<<nspecies<<std::endl;
+	
+}
 arma::mat load_arma_binary_partial(std::string filename, int n_cols){
 	std::ifstream f;
 	f.open(filename.c_str(), std::fstream::binary);
@@ -75,16 +86,16 @@ void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix, int normal
 		snap_std.save("snap_std.bin"+suffix, arma::arma_binary);
 	}
 	else if(isnormalize == 2){
-		snap_mean_v = arma::vec(NSPECIES);
-		snap_std_v = arma::vec(NSPECIES);
-		int ncv = snapshots.n_rows/NSPECIES;
+		snap_mean_v = arma::vec(nspecies);
+		snap_std_v = arma::vec(nspecies);
+		int ncv = snapshots.n_rows/nspecies;
 		int nt = snapshots.n_cols;
 		arma::vec Var(ncv*nt);
-		for(int i=0; i<NSPECIES; i++){
+		for(int i=0; i<nspecies; i++){
 			int k=0;
 			for(int icv=0; icv<ncv; icv++){
 				for(int t=0; t<nt; t++){
-					Var(k) = snapshots(icv*NSPECIES + i, t);
+					Var(k) = snapshots(icv*nspecies + i, t);
 					k+=1;
 				}
 			}
@@ -97,7 +108,7 @@ void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix, int normal
 
 		for(arma::uword j=0; j<snapshots.n_cols; j++){
 			for(arma::uword i=0; i<snapshots.n_rows; i++){
-				snapshots(i, j) = (snapshots(i,j) - snap_mean_v(i%NSPECIES))/snap_std_v(i%NSPECIES);
+				snapshots(i, j) = (snapshots(i,j) - snap_mean_v(i%nspecies))/snap_std_v(i%nspecies);
 			}
 		}
 		
@@ -107,16 +118,16 @@ void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix, int normal
 	}
 	
 	else if(isnormalize == 3){
-		snap_mean_v = arma::vec(NSPECIES);
-		snap_std_v = arma::vec(NSPECIES);
-		int ncv = snapshots.n_rows/NSPECIES;
+		snap_mean_v = arma::vec(nspecies);
+		snap_std_v = arma::vec(nspecies);
+		int ncv = snapshots.n_rows/nspecies;
 		int nt = snapshots.n_cols;
 		arma::vec Var(ncv*nt);
-		for(int i=0; i<NSPECIES; i++){
+		for(int i=0; i<nspecies; i++){
 			int k=0;
 			for(int icv=0; icv<ncv; icv++){
 				for(int t=0; t<nt; t++){
-					Var(k) = snapshots(icv*NSPECIES + i, t);
+					Var(k) = snapshots(icv*nspecies + i, t);
 					k+=1;
 				}
 			}
@@ -133,7 +144,7 @@ void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix, int normal
 		snap_std_v(2) = snap_std_v(1);
 		for(arma::uword j=0; j<snapshots.n_cols; j++){
 			for(arma::uword i=0; i<snapshots.n_rows; i++){
-				snapshots(i, j) = (snapshots(i,j) - snap_mean_v(i%NSPECIES))/snap_std_v(i%NSPECIES);
+				snapshots(i, j) = (snapshots(i,j) - snap_mean_v(i%nspecies))/snap_std_v(i%nspecies);
 			}
 		}
 		
@@ -143,29 +154,35 @@ void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix, int normal
 	}
 	else if(isnormalize == 4 || isnormalize == 5){
 		snap_mean = arma::mean(snapshots, 1);
-		snap_std_v = arma::vec(NSPECIES);
-		int ncv = snapshots.n_rows/NSPECIES;
+		snap_std_v = arma::vec(nspecies);
+		int ncv = snapshots.n_rows/nspecies;
 		int nt = snapshots.n_cols;
 		arma::vec Var(ncv*nt);
-		for(int i=0; i<NSPECIES; i++){
+		for(int i=0; i<nspecies; i++){
 			int k=0;
 			for(int icv=0; icv<ncv; icv++){
 				for(int t=0; t<nt; t++){
-					Var(k) = snapshots(icv*NSPECIES + i, t) - snap_mean(icv*NSPECIES + i);
+					Var(k) = snapshots(icv*nspecies + i, t) - snap_mean(icv*nspecies + i);
 					k+=1;
 				}
 			}
 			assert(k == ncv*nt);
 			snap_std_v(i) = arma::abs(Var).max();
-			if(i>=4){
+			if(i>= 4 + (ndimension-2)){
 				snap_std_v(i) = 1.0;
 			}
 			
 		}
 		//snap_mean_v(2) = snap_mean_v(1);
-		double umag = std::sqrt(snap_std_v(1)* snap_std_v(1) +  snap_std_v(2)* snap_std_v(2));
-		snap_std_v(1) = umag;
-		snap_std_v(2) = umag;
+		double umag = 0;
+		for(int i=0; i<ndimension; i++){
+			umag += snap_std_v(1+i)*snap_std_v(1+i);
+		}
+		umag = std::sqrt(umag);
+
+		for(int i=0; i<ndimension; i++){
+			snap_std_v(1+i) = umag;
+		}
 		
 		if(isnormalize == 5){
 			snap_std_v.load("snap_std_v.bin", arma::arma_binary);
@@ -173,7 +190,7 @@ void MainRom::set_snapshots(arma::mat isnapshots, std::string suffix, int normal
 		
 		for(arma::uword j=0; j<snapshots.n_cols; j++){
 			for(arma::uword i=0; i<snapshots.n_rows; i++){
-				snapshots(i, j) = (snapshots(i,j) - snap_mean(i))/snap_std_v(i%NSPECIES);
+				snapshots(i, j) = (snapshots(i,j) - snap_mean(i))/snap_std_v(i%nspecies);
 			}
 		}
 		snap_mean.save("snap_mean.bin"+suffix, arma::arma_binary);
@@ -307,7 +324,7 @@ void MainRom::reconstruct(int n_mode){
 }
 
 arma::mat MainRom::get_var_modes(int ivar_idx){
-	arma::uvec var_indices = arma::regspace<arma::uvec>(ivar_idx, NSPECIES, NDOF-1);
+	arma::uvec var_indices = arma::regspace<arma::uvec>(ivar_idx, nspecies, ndof-1);
 	var_indices.print();
 	return modes_spatial.rows(var_indices);
 }
@@ -351,7 +368,7 @@ void MainRom::calc_qdeim(int dim){
 
 	if(deim_mode == DEIM_MODE_VECTOR){
 		assert(pp.min() >= 0);
-		assert(pp.max() < NDOF);
+		assert(pp.max() < ndof);
 		pp.save("residual_p.bin", arma::arma_binary);
 		pp.save("residual_p.ascii", arma::arma_ascii);
 
@@ -359,10 +376,10 @@ void MainRom::calc_qdeim(int dim){
 	else if(deim_mode == DEIM_MODE_CELL){
 		assert(pp.min() >= 0);
 		assert(pp.max() < 8000);
-		arma::uvec ppp = arma::uvec(pp.size()*NSPECIES);
+		arma::uvec ppp = arma::uvec(pp.size()*nspecies);
 		for(int i=0; i<pp.size(); i++){
-			for(int j=0; j<NSPECIES; j++){
-				ppp(i*NSPECIES + j) = pp(i)*NSPECIES + j;
+			for(int j=0; j<nspecies; j++){
+				ppp(i*nspecies + j) = pp(i)*nspecies + j;
 			}
 		}
 		ppp.save("residual_p.bin", arma::arma_binary);
@@ -635,12 +652,12 @@ arma::vec MainRom::renormalize(arma::vec x){
 	}
 	else if(isnormalize==2 || isnormalize==3){
 		for(arma::uword k=0; k<x.size(); k++){
-			y(k) = x(k)*snap_std_v(k%NSPECIES) + snap_mean_v(k%NSPECIES);
+			y(k) = x(k)*snap_std_v(k%nspecies) + snap_mean_v(k%nspecies);
 		}
 	}
 	else if(isnormalize==4 || isnormalize == 5){
 		for(arma::uword k=0; k<x.size(); k++){
-			y(k) = x(k)*snap_std_v(k%NSPECIES) + snap_mean(k);
+			y(k) = x(k)*snap_std_v(k%nspecies) + snap_mean(k);
 		}
 	}
 
@@ -661,12 +678,12 @@ arma::vec MainRom::renormalize(arma::vec x, arma::uvec var_idx){
 	}
 	else if(isnormalize==2 || isnormalize ==3){
 		for(arma::uword k=0; k<x.size(); k++){
-			y(k) = x(k)*snap_std_v(var_idx(k)%NSPECIES) + snap_mean_v(var_idx(k)%NSPECIES);
+			y(k) = x(k)*snap_std_v(var_idx(k)%nspecies) + snap_mean_v(var_idx(k)%nspecies);
 		}
 	}
 	else if(isnormalize==4 || isnormalize == 5){
 		for(arma::uword k=0; k<x.size(); k++){
-			y(k) = x(k)*snap_std_v(var_idx(k)%NSPECIES) + snap_mean(var_idx(k));
+			y(k) = x(k)*snap_std_v(var_idx(k)%nspecies) + snap_mean(var_idx(k));
 		}
 	}
 
@@ -688,13 +705,13 @@ void MainRom::renormalize(int isize, double *x, double *y){
 	}
 	else if(isnormalize==2 || isnormalize==3){
 		for(arma::uword k=0; k<isize; k++){
-			y[k] = x[k]*snap_std_v(k%NSPECIES) + snap_mean_v(k%NSPECIES);
+			y[k] = x[k]*snap_std_v(k%nspecies) + snap_mean_v(k%nspecies);
 		}
 	}
 	else if(isnormalize==4  || isnormalize == 5){
-		std::cout<<"calling renormalize"<<std::endl;
+		//std::cout<<"calling renormalize"<<std::endl;
 		for(arma::uword k=0; k<isize; k++){
-			y[k] = x[k]*snap_std_v(k%NSPECIES);// +  snap_mean(k);
+			y[k] = x[k]*snap_std_v(k%nspecies);// +  snap_mean(k);
 		}
 	}
 
@@ -715,12 +732,12 @@ arma::vec MainRom::normalize(arma::vec x){
 	}
 	else if(isnormalize==2 || isnormalize==3){
 		for(arma::uword k=0; k<x.size(); k++){
-			y(k) = (x(k) - snap_mean_v(k%NSPECIES))/snap_std_v(k%NSPECIES);
+			y(k) = (x(k) - snap_mean_v(k%nspecies))/snap_std_v(k%nspecies);
 		}
 	}
 	else if(isnormalize==4  || isnormalize == 5){
 		for(arma::uword k=0; k<x.size(); k++){
-			y(k) = (x(k) - snap_mean(k))/snap_std_v(k%NSPECIES);
+			y(k) = (x(k) - snap_mean(k))/snap_std_v(k%nspecies);
 		}
 	}
 
@@ -742,12 +759,12 @@ arma::vec MainRom::normalize(arma::vec x, arma::uvec var_idx){
 	}
 	else if(isnormalize==2 || isnormalize==3){
 		for(arma::uword k=0; k<x.size(); k++){
-			y(k) = (x(k) - snap_mean_v(var_idx(k)%NSPECIES))/snap_std_v(var_idx(k)%NSPECIES);
+			y(k) = (x(k) - snap_mean_v(var_idx(k)%nspecies))/snap_std_v(var_idx(k)%nspecies);
 		}
 	}
 	else if(isnormalize==4  || isnormalize == 5){
 		for(arma::uword k=0; k<x.size(); k++){
-			y(k) = (x(k) - snap_mean(var_idx(k)))/snap_std_v(var_idx(k)%NSPECIES);
+			y(k) = (x(k) - snap_mean(var_idx(k)))/snap_std_v(var_idx(k)%nspecies);
 		}
 	}
 
@@ -866,10 +883,6 @@ void GemsRom::calc_deim(int ipartition_id, double *r_s, double *deim_r){
 			//mean = m->snap_mean_v(ivar);
 		}
 		else{
-			std::cout<<"calc_deim"<<std::endl;
-			if(i%NSPECIES==0){
-				std::cout<<r_s_v(i)<<std::endl;
-			}
 			int gid = preload_tmp_idx(i, 0);
 			//mean = m->snap_mean(gid);
 		}
@@ -880,7 +893,7 @@ void GemsRom::calc_deim(int ipartition_id, double *r_s, double *deim_r){
 
 	arma::vec deim_r_v = calc_deim(ipartition_id, r_s_v);
 	
-	for(int i=0; i<NDOF; i++){
+	for(int i=0; i<m->ndof; i++){
 		deim_r[i] = deim_r_v(i);
 	}
 
@@ -911,10 +924,11 @@ void GemsRom::initialize(int ipartition_id){
 	}
 	m->isnormalize = 4;
 	directory = "RomFiles/";
+	m->read_config_file(directory);
 	//arma::mat snapshots = load_snapshots("_deim");
 	//m->set_snapshots(snapshots);
 	int num_processor = load_partition_info();
-	m->load_modes("_residual", directory);
+	m->load_modes("", directory);
 	
 	preload_tmp_idx.load(directory + "residual_p_"+std::to_string(ipartition_id), arma::arma_binary);
 	preload_PP.load(directory + "PP_p_"+std::to_string(ipartition_id), arma::arma_binary);
@@ -953,11 +967,11 @@ int GemsRom::get_global_id(int ipartition_id, int ilocal_id){
 }
 
 arma::uvec GemsRom::get_index(int ipartition_id, arma::uvec idx){
-	arma::uvec var_idx(NSPECIES*idx.size());
+	arma::uvec var_idx(m->nspecies*idx.size());
 	for(int i=0; i<idx.size(); i++){
 		//		int gid = get_global_id(ipartition_id, i);
-		for(int k=0; k<NSPECIES; k++){
-			var_idx(i*NSPECIES + k) = idx(i)*NSPECIES + k;
+		for(int k=0; k<m->nspecies; k++){
+			var_idx(i*m->nspecies + k) = idx(i)*m->nspecies + k;
 		}
 	}
 	return var_idx;
@@ -965,7 +979,7 @@ arma::uvec GemsRom::get_index(int ipartition_id, arma::uvec idx){
 
 arma::vec GemsRom::get_uhat(int ipartition_id, arma::vec q, int n_mode){
 	arma::uvec idx = arma::find(partition_id == ipartition_id);
-	assert(q.size() == NSPECIES*idx.size());
+	assert(q.size() == m->nspecies*idx.size());
 	arma::uvec var_idx = get_index(ipartition_id, idx);
 	arma::vec uhat = m->projection_on_basis(q, n_mode, var_idx);
 	return uhat;
@@ -976,7 +990,7 @@ arma::vec GemsRom::get_u(int ipartition_id, arma::vec qhat, int n_mode){
 	arma::uvec idx = arma::find(partition_id == ipartition_id);
 	arma::uvec var_idx = get_index(ipartition_id, idx);
 	arma::vec u = m->projection_from_basis(qhat, n_mode, var_idx);
-	assert(u.size() == idx.size()*NSPECIES);
+	assert(u.size() == idx.size()*m->nspecies);
 	return u;
 }
 

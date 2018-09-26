@@ -6,8 +6,8 @@
 #include "../external/Eigen/Eigen/Dense"
 #define DEIM_MODE_VECTOR 0
 #define DEIM_MODE_CELL 1
-#define NDOF (64000)
-#define NSPECIES (8)
+//#define NDOF (64000)
+//#define NSPECIES (8)
 
 //#define NDOF (64000)
 //#define NSPECIES (8)
@@ -41,8 +41,12 @@ public:
 	arma::vec singular_values;
 	int isnormalize = -1;
 	int deim_mode = DEIM_MODE_VECTOR;
+
+	int ndimension, ncv, nspecies, ndof;
+
 	arma::Col<arma::uword> deim_p;
 
+	void read_config_file(std::string directory);
 	void set_snapshots(int idim, int insamples, double *isnapshots, int normalization=0);
 	void set_snapshots(arma::mat isnapshots, std::string suffix="", int normalization=0);
 	

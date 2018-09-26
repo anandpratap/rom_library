@@ -57,12 +57,12 @@
        integer(c_int) :: ilocal_id(isize), ivar(isize)
      end subroutine gemsrom_get_deim_id_c
 
-     subroutine gemsrom_get_deim_c(gemsrom, partition_id, isize, r_s, deim_r) bind(C, name="gemsrom_calc_deim")
+     subroutine gemsrom_get_deim_c(gemsrom, partition_id,  isize, ndof, r_s, deim_r) bind(C, name="gemsrom_calc_deim")
        use iso_c_binding
        implicit none
        type(c_ptr), intent(in), value :: gemsrom
-       integer(c_int), intent(in), value :: partition_id, isize
-       real(c_double) :: r_s(isize), deim_r(64000)
+       integer(c_int), intent(in), value :: partition_id, isize, ndof
+       real(c_double) :: r_s(isize), deim_r(ndof)
      end subroutine gemsrom_get_deim_c
 
      subroutine gemsrom_renormalize_c(gemsrom, isize, x, y) bind(C, name="gemsrom_renormalize")

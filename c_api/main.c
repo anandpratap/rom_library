@@ -45,7 +45,7 @@ void gemsrom_get_deim_n(gemsrom *gr, int partition_id, int &in){
 void gemsrom_get_deim_idx(gemsrom *gr, int partition_id, int isize, int *ilocal_id, int *ivar){
 	gr->get_deim_local_id_idx(partition_id, ilocal_id, ivar);
 };
-void gemsrom_calc_deim(gemsrom *gr, int partition_id, int isize, double *r_s, double *deim_r){
+void gemsrom_calc_deim(gemsrom *gr, int partition_id, int isize, int ndof, double *r_s, double *deim_r){
 	gr->calc_deim(partition_id, r_s, deim_r);
 };
 
